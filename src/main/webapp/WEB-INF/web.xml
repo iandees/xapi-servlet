@@ -8,6 +8,6 @@
 
   <servlet-mapping>
     <servlet-name>Xapi</servlet-name>
-    <url-pattern>/api/0.6</url-pattern>
+    <url-pattern>/api/0.6/*</url-pattern>
   </servlet-mapping>
 </web-app>
