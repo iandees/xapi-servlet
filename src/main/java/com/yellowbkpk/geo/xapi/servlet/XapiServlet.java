@@ -20,8 +20,12 @@ public class XapiServlet extends HttpServlet {
 		// Parse URL
 		XAPIQueryInfo info = null;
 		try {
-			String requestedUrl = request.getRequestURL().toString();
-			String query = requestedUrl.substring(requestedUrl.lastIndexOf('/') + 1);
+			StringBuffer urlBuffer = request.getRequestURL();
+			if (request.getQueryString() != null) {
+				urlBuffer.append("?").append(request.getQueryString());
+			}
+			String reqUrl = urlBuffer.toString();
+			String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
 			query = URLDecoder.decode(query, "UTF-8");
 			info = XAPIQueryInfo.fromString(query);
 		} catch (RecognitionException e) {
