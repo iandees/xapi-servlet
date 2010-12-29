@@ -18,6 +18,8 @@ import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.PostgreSqlDatasetContext;
 import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.Selection;
+import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.Selector;
+import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.Selector.BoundingBox;
 
 import com.yellowbkpk.geo.xapi.XAPIQueryInfo;
 
@@ -40,6 +42,7 @@ public class XapiServlet extends HttpServlet {
 			info = XAPIQueryInfo.fromString(query);
 		} catch (RecognitionException e) {
 			response.sendError(500, "Could not parse query: " + e.getMessage());
+			return;
 		}
 		
 		if(info.getBboxSelectors().size() > 1) {
@@ -47,17 +50,28 @@ public class XapiServlet extends HttpServlet {
 			return;
 		}
 		
-		Selection nodes = new Selection();
-		Selection ways = new Selection();
-		Selection relations = new Selection();
+		// Query DB
+		ReleasableIterator<EntityContainer> bboxData;
+		PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+		if(XAPIQueryInfo.RequestType.NODE.equals(info.getKind())) {
+			bboxData = datasetReader.iterateSelectedNodes(info.getBboxSelectors(), info.getTagSelectors());
+		} else if(XAPIQueryInfo.RequestType.WAY.equals(info.getKind())) {
+			bboxData = datasetReader.iterateSelectedWays(info.getBboxSelectors(), info.getTagSelectors());
+		} else if(XAPIQueryInfo.RequestType.RELATION.equals(info.getKind())) {
+			bboxData = datasetReader.iterateSelectedRelations(info.getBboxSelectors(), info.getTagSelectors());
+		} else if(XAPIQueryInfo.RequestType.MAP.equals(info.getKind())) {
+			BoundingBox boundingBox = info.getBboxSelectors().get(0);
+			bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(), boundingBox.getRight(), boundingBox.getTop(), boundingBox.getBottom(), true);
+		} else {
+			response.sendError(500, "Unsupported operation.");
+			return;
+		}
 		
 		// Build up a writer connected to the response output stream
 		response.setContentType("text/xml; charset=utf-8");
 		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(response.getOutputStream()));
 		
-		// Query DB
-		PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
-		ReleasableIterator<EntityContainer> bboxData = datasetReader.iterateSelectors(nodes, ways, relations);
+		// Serialize to the client
 		Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
 		
 		try {
