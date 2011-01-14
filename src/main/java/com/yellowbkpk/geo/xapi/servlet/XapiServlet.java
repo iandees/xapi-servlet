@@ -10,18 +10,16 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.antlr.runtime.RecognitionException;
 import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
 import org.openstreetmap.osmosis.core.database.DatabaseLoginCredentials;
 import org.openstreetmap.osmosis.core.database.DatabasePreferences;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
-import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.PostgreSqlDatasetContext;
-import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.Selection;
-import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.Selector;
-import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.Selector.BoundingBox;
 
-import com.yellowbkpk.geo.xapi.XAPIQueryInfo;
+import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
+import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.query.XAPIParseException;
+import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class XapiServlet extends HttpServlet {
 	private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi", "xapi", "xapi", true, false, null);
@@ -40,7 +38,7 @@ public class XapiServlet extends HttpServlet {
 			String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
 			query = URLDecoder.decode(query, "UTF-8");
 			info = XAPIQueryInfo.fromString(query);
-		} catch (RecognitionException e) {
+		} catch (XAPIParseException e) {
 			response.sendError(500, "Could not parse query: " + e.getMessage());
 			return;
 		}
@@ -59,9 +57,14 @@ public class XapiServlet extends HttpServlet {
 			bboxData = datasetReader.iterateSelectedWays(info.getBboxSelectors(), info.getTagSelectors());
 		} else if(XAPIQueryInfo.RequestType.RELATION.equals(info.getKind())) {
 			bboxData = datasetReader.iterateSelectedRelations(info.getBboxSelectors(), info.getTagSelectors());
+		} else if(XAPIQueryInfo.RequestType.ALL.equals(info.getKind())) {
+			bboxData = datasetReader.iterateSelectedPrimitives(info.getBboxSelectors(), info.getTagSelectors());
 		} else if(XAPIQueryInfo.RequestType.MAP.equals(info.getKind())) {
-			BoundingBox boundingBox = info.getBboxSelectors().get(0);
-			bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(), boundingBox.getRight(), boundingBox.getTop(), boundingBox.getBottom(), true);
+			Selector.BoundingBox boundingBox = info.getBboxSelectors().get(0);
+			bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(),
+														boundingBox.getRight(),
+														boundingBox.getTop(),
+														boundingBox.getBottom(), true);
 		} else {
 			response.sendError(500, "Unsupported operation.");
 			return;
