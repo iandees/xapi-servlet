@@ -841,4 +841,113 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		// Merge all readers into a single result iterator and return.			
 		return new MultipleSourceIterator<EntityContainer>(resultSets);
 	}
+
+
+	public ReleasableIterator<EntityContainer> iterateSingleNode(
+			long primitiveId) {
+		int rowCount;
+		List<ReleasableIterator<EntityContainer>> resultSets;
+		
+		if (!initialized) {
+			initialize();
+		}
+		
+		// PostgreSQL sometimes incorrectly chooses to perform full table scans, these options
+		// prevent this. Note that this is not recommended practice according to documentation
+		// but fixing this would require modifying the table statistics gathering
+		// configuration to produce better plans.
+		jdbcTemplate.update("SET enable_seqscan = false");
+		jdbcTemplate.update("SET enable_mergejoin = false");
+		jdbcTemplate.update("SET enable_hashjoin = false");
+		
+		LOG.finer("Creating nodes table with single ID.");
+        rowCount = jdbcTemplate.update(
+                "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
+                + " SELECT * FROM nodes WHERE id = ?",
+                primitiveId);
+		
+		LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
+		jdbcTemplate.update("ANALYZE bbox_nodes");
+		
+		// Create iterators for the selected records for each of the entity types.
+		LOG.finer("Iterating over results.");
+		resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
+		resultSets.add(
+				new UpcastIterator<EntityContainer, NodeContainer>(
+						new NodeContainerIterator(nodeDao.iterate("bbox_"))));
+
+		// Merge all readers into a single result iterator and return.			
+		return new MultipleSourceIterator<EntityContainer>(resultSets);
+	
+	}
+
+
+	public ReleasableIterator<EntityContainer> iterateSingleWay(long primitiveId) {
+		int rowCount;
+		List<ReleasableIterator<EntityContainer>> resultSets;
+		
+		if (!initialized) {
+			initialize();
+		}
+		
+		// PostgreSQL sometimes incorrectly chooses to perform full table scans, these options
+		// prevent this. Note that this is not recommended practice according to documentation
+		// but fixing this would require modifying the table statistics gathering
+		// configuration to produce better plans.
+		jdbcTemplate.update("SET enable_seqscan = false");
+		jdbcTemplate.update("SET enable_mergejoin = false");
+		jdbcTemplate.update("SET enable_hashjoin = false");
+		
+		LOG.finer("Creating empty nodes table.");
+        rowCount = jdbcTemplate.update(
+                "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
+                + " SELECT * FROM nodes WHERE FALSE");
+		
+		rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways WHERE id = ?", primitiveId);
+			
+		LOG.finer(rowCount + " rows affected.");
+		
+		LOG.finer("Updating query analyzer statistics on the temporary ways table.");
+		jdbcTemplate.update("ANALYZE bbox_ways");
+		
+		LOG.finer("Selecting all nodes for selected ways.");
+		jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_way_nodes (id bigint) ON COMMIT DROP");
+		jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
+		jdbcTemplate.update(
+				"CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
+				+ "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn "
+				+ "WHERE NOT EXISTS ("
+				+ "    SELECT * FROM bbox_nodes WHERE id = buwn.id"
+				+ ");"
+		);
+		jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
+				+ " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
+		jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
+		rowCount = jdbcTemplate.update("INSERT INTO bbox_nodes "
+				+ "SELECT n.* FROM nodes n INNER JOIN bbox_missing_way_nodes bwn ON n.id = bwn.id;");
+		LOG.finer(rowCount + " rows affected.");
+		
+		LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
+		jdbcTemplate.update("ANALYZE bbox_nodes");
+		
+		// Create iterators for the selected records for each of the entity types.
+		LOG.finer("Iterating over results.");
+		resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
+		resultSets.add(
+				new UpcastIterator<EntityContainer, NodeContainer>(
+						new NodeContainerIterator(nodeDao.iterate("bbox_"))));
+		resultSets.add(
+				new UpcastIterator<EntityContainer, WayContainer>(
+						new WayContainerIterator(wayDao.iterate("bbox_"))));
+		
+		// Merge all readers into a single result iterator and return.			
+		return new MultipleSourceIterator<EntityContainer>(resultSets);
+	}
+
+
+	public ReleasableIterator<EntityContainer> iterateSingleRelation(
+			long primitiveId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

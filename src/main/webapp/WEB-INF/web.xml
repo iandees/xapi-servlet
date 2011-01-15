@@ -1,11 +1,22 @@
 <web-app xmlns="http://java.sun.com/xml/ns/j2ee" version="2.4"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http:/java.sun.com/dtd/web-app_2_3.dtd">
+  
+  <servlet>
+    <servlet-name>Api</servlet-name>
+    <servlet-class>com.yellowbkpk.geo.xapi.servlet.ApiServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Api</servlet-name>
+    <url-pattern>/api/0.6/node/*</url-pattern>
+    <url-pattern>/api/0.6/way/*</url-pattern>
+    <url-pattern>/api/0.6/relation/*</url-pattern>
+  </servlet-mapping>
+  
   <servlet>
     <servlet-name>Xapi</servlet-name>
     <servlet-class>com.yellowbkpk.geo.xapi.servlet.XapiServlet</servlet-class>
   </servlet>
-
   <servlet-mapping>
     <servlet-name>Xapi</servlet-name>
     <url-pattern>/api/0.6/*</url-pattern>
