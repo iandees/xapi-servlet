@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -25,6 +26,8 @@ public class XapiServlet extends HttpServlet {
 	private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi", "xapi", "xapi", true, false, null);
 	private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
 
+	private static Logger log = Logger.getLogger("XAPI");
+	
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		// Parse URL
@@ -37,18 +40,15 @@ public class XapiServlet extends HttpServlet {
 			String reqUrl = urlBuffer.toString();
 			String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
 			query = URLDecoder.decode(query, "UTF-8");
+			log.info("Query " + query);
 			info = XAPIQueryInfo.fromString(query);
 		} catch (XAPIParseException e) {
 			response.sendError(500, "Could not parse query: " + e.getMessage());
 			return;
 		}
 		
-		if(info.getBboxSelectors().size() > 1) {
-			response.sendError(500, "Only one bounding box query is supported at this time.");
-			return;
-		}
-		
 		// Query DB
+		long start = System.currentTimeMillis();
 		ReleasableIterator<EntityContainer> bboxData;
 		PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
 		if(XAPIQueryInfo.RequestType.NODE.equals(info.getKind())) {
@@ -69,6 +69,8 @@ public class XapiServlet extends HttpServlet {
 			response.sendError(500, "Unsupported operation.");
 			return;
 		}
+		long middle = System.currentTimeMillis();
+		log.info("Query complete: " + (middle - start) + "ms");
 		
 		// Build up a writer connected to the response output stream
 		response.setContentType("text/xml; charset=utf-8");
@@ -90,5 +92,7 @@ public class XapiServlet extends HttpServlet {
 		
 		out.flush();
 		out.close();
+		long end = System.currentTimeMillis();
+		log.info("Serialization complete: " + (end - middle) + "ms");
 	}
 }
