@@ -739,7 +739,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 			sql.append("WHERE ");
 			if(bboxWhereObj.size() > 0) {
 				sql.append("(");
-				sql.append(bboxWhereStr);
+				sql.append(bboxWhereStr.replaceAll("geom", "linestring")); //FIXME
 				sql.append(")");
 				if(tagsWhereObj.size() > 0) {
 					sql.append(" AND ");
