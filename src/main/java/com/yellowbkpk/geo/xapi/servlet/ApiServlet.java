@@ -18,9 +18,6 @@ import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
-import com.yellowbkpk.geo.xapi.db.Selector;
-import com.yellowbkpk.geo.xapi.query.XAPIParseException;
-import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class ApiServlet extends HttpServlet {
 	private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi", "xapi", "xapi", true, false, null);
@@ -70,6 +67,7 @@ public class ApiServlet extends HttpServlet {
 		
 		// Build up a writer connected to the response output stream
 		response.setContentType("text/xml; charset=utf-8");
+		response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
 		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(response.getOutputStream()));
 		
 		// Serialize to the client
