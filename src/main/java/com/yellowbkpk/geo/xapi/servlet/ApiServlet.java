@@ -2,9 +2,11 @@ package com.yellowbkpk.geo.xapi.servlet;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
 import java.util.logging.Logger;
+import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -68,7 +70,14 @@ public class ApiServlet extends HttpServlet {
 		// Build up a writer connected to the response output stream
 		response.setContentType("text/xml; charset=utf-8");
 		response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
-		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(response.getOutputStream()));
+		
+		OutputStream outputStream = response.getOutputStream();
+		String acceptEncodingHeader = request.getHeader("Accept-Encoding");
+		if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
+			outputStream = new GZIPOutputStream(outputStream);
+		}
+		
+		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 		
 		// Serialize to the client
 		Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
