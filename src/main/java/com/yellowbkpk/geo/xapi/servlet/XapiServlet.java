@@ -82,9 +82,10 @@ public class XapiServlet extends HttpServlet {
 		String acceptEncodingHeader = request.getHeader("Accept-Encoding");
 		if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
 			outputStream = new GZIPOutputStream(outputStream);
+			response.setHeader("Content-Encoding", "gzip");
 		}
 		
-		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(response.getOutputStream()));
+		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 		
 		// Serialize to the client
 		Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);

@@ -75,6 +75,7 @@ public class ApiServlet extends HttpServlet {
 		String acceptEncodingHeader = request.getHeader("Accept-Encoding");
 		if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
 			outputStream = new GZIPOutputStream(outputStream);
+			response.setHeader("Content-Encoding", "gzip");
 		}
 		
 		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
