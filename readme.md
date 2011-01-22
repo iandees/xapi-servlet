@@ -39,3 +39,12 @@ Installation
     `bzcat planet-latest.osm.bz2 | bin/osmosis --read-xml file="/dev/stdin" --write-pgsql user="xapi" database="xapi"`
 
 3. Grab the latest XAPI war and deploy it with a servlet container like Tomcat or Jetty.
+
+Thanks
+------
+
+This app was built on the shoulders of other people's open source code:
+
+- bretth's Osmosis: for the database schema and querying code
+
+- emacsen's xapi-ui: for the HTML debugging page he created to help build XAPI query URLs
