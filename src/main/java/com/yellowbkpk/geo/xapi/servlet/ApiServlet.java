@@ -92,6 +92,7 @@ public class ApiServlet extends HttpServlet {
 			
 		} finally {
 			bboxData.release();
+			datasetReader.complete();
 		}
 		
 		out.flush();

@@ -99,6 +99,7 @@ public class XapiServlet extends HttpServlet {
 			
 		} finally {
 			bboxData.release();
+			datasetReader.complete();
 		}
 		
 		out.flush();
