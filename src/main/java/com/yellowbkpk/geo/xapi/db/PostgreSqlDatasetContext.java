@@ -536,6 +536,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 			List<Selector.BoundingBox> bboxSelectors, List<Selector> tagSelectors) {
 		int rowCount;
 		List<ReleasableIterator<EntityContainer>> resultSets;
+		ArrayList<Bound> bounds = new ArrayList<Bound>();
 		
 		if (!initialized) {
 			initialize();
@@ -548,6 +549,15 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		List<Object> objArgs = new LinkedList<Object>();
 		objArgs.addAll(bboxWhereObj);
 		objArgs.addAll(tagsWhereObj);
+		
+		if(bboxSelectors.size() > 0) {
+			Selector.BoundingBox boundingBox = bboxSelectors.get(0);
+			double right = boundingBox.getRight();
+			double left = boundingBox.getLeft();
+			double top = boundingBox.getTop();
+			double bottom = boundingBox.getBottom();
+			bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+		}
 		
 		// PostgreSQL sometimes incorrectly chooses to perform full table scans, these options
 		// prevent this. Note that this is not recommended practice according to documentation
@@ -618,6 +628,9 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		LOG.finer("Iterating over results.");
 		resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 		resultSets.add(
+				new UpcastIterator<EntityContainer, BoundContainer>(
+						new BoundContainerIterator(new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
+		resultSets.add(
 				new UpcastIterator<EntityContainer, NodeContainer>(
 						new NodeContainerIterator(nodeDao.iterate("bbox_"))));
 		resultSets.add(
@@ -633,9 +646,19 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 			List<Selector.BoundingBox> bboxSelectors, List<Selector> tagSelectors) {
 		int rowCount;
 		List<ReleasableIterator<EntityContainer>> resultSets;
+		ArrayList<Bound> bounds = new ArrayList<Bound>();
 		
 		if (!initialized) {
 			initialize();
+		}
+		
+		if(bboxSelectors.size() > 0) {
+			Selector.BoundingBox boundingBox = bboxSelectors.get(0);
+			double right = boundingBox.getRight();
+			double left = boundingBox.getLeft();
+			double top = boundingBox.getTop();
+			double bottom = boundingBox.getBottom();
+			bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
 		}
 		
 		String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
@@ -667,6 +690,9 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		LOG.finer("Iterating over results.");
 		resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 		resultSets.add(
+				new UpcastIterator<EntityContainer, BoundContainer>(
+						new BoundContainerIterator(new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
+		resultSets.add(
 				new UpcastIterator<EntityContainer, RelationContainer>(
 						new RelationContainerIterator(relationDao.iterate("bbox_"))));
 		
@@ -677,14 +703,21 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
 	public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(
 			List<Selector.BoundingBox> bboxSelectors, List<Selector> tagSelectors) {
-		List<Bound> bounds;
-		Point[] bboxPoints;
-		Polygon bboxPolygon;
+		ArrayList<Bound> bounds = new ArrayList<Bound>();
 		int rowCount;
 		List<ReleasableIterator<EntityContainer>> resultSets;
 		
 		if (!initialized) {
 			initialize();
+		}
+
+		if(bboxSelectors.size() > 0) {
+			Selector.BoundingBox boundingBox = bboxSelectors.get(0);
+			double right = boundingBox.getRight();
+			double left = boundingBox.getLeft();
+			double top = boundingBox.getTop();
+			double bottom = boundingBox.getBottom();
+			bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
 		}
 
 		String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
@@ -828,6 +861,9 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		// Create iterators for the selected records for each of the entity types.
 		LOG.finer("Iterating over results.");
 		resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
+		resultSets.add(
+				new UpcastIterator<EntityContainer, BoundContainer>(
+						new BoundContainerIterator(new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
 		resultSets.add(
 				new UpcastIterator<EntityContainer, NodeContainer>(
 						new NodeContainerIterator(nodeDao.iterate("bbox_"))));
