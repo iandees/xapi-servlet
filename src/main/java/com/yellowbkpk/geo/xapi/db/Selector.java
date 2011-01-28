@@ -2,9 +2,9 @@ package com.yellowbkpk.geo.xapi.db;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.postgis.PGgeometry;
+import org.postgis.Point;
 
 public abstract class Selector {
 
@@ -16,10 +16,6 @@ public abstract class Selector {
     	for (Object object : params) {
 			this.param.add(object);
 		}
-	}
-
-	private static String randomKey() {
-		return UUID.randomUUID().toString().substring(0, 4);
 	}
 
 	public String getWhereString() {
@@ -39,6 +35,12 @@ public abstract class Selector {
             	super(" exist(tags, ?)", key);
             }
         }
+    }
+    
+    public static class Polygon extends Selector {
+    	public Polygon(Point[] points) {
+    		super(" ST_Intersects(geom, ?)", new PGgeometry(PolygonBuilder.createPolygon(points)));
+    	}
     }
 
     public static class BoundingBox extends Selector {

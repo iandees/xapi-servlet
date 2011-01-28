@@ -11,6 +11,7 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
+import org.postgis.Point;
 
 import com.yellowbkpk.geo.xapi.antlr.XAPILexer;
 import com.yellowbkpk.geo.xapi.antlr.XAPIParser;
@@ -131,6 +132,48 @@ public class XAPIQueryInfo {
 		double right = Double.parseDouble(predicateTree.getChild(2).getText());
 		double top = Double.parseDouble(predicateTree.getChild(3).getText());
 		return new Selector.BoundingBox(left, right, top, bottom);
+	}
+
+	private static Selector.Polygon buildPolygonSelector(Tree predicateTree) {
+		String encoded = predicateTree.getChild(0).getText();
+		
+		Point[] points = decodePolygonString(encoded);
+		return new Selector.Polygon(points);
+	}
+	
+	private static Point[] decodePolygonString(String encoded) {
+		int i = 0;
+		char[] charArray = encoded.toCharArray();
+		List<Point> points = new LinkedList<Point>();
+		
+		while(i < charArray.length) {
+			char b;
+			int shift = 0;
+			int result = 0;
+			float lat = 0;
+			float lon = 0;
+			do {
+				b = (char) (charArray[i++] - 63);
+				result |= (b & 0x1f) << shift;
+				shift += 5;
+			} while(b >= 0x20);
+			float dlat = (((result & 1) > 0) ? ~(result >> 1) : (result >> 1));
+			lat += dlat;
+			
+			shift = 0;
+            result = 0;
+            do {
+                  b = (char) (charArray[i++] - 63);
+                  result |= (b & 0x1f) << shift;
+                  shift += 5;
+            } while (b >= 0x20);
+            float dlng = (((result & 1) > 0) ? ~(result >> 1) : (result >> 1));
+            lon += dlng;
+            
+            points.add(new Point(lon * 1e-5, lat * 1e-5));
+		}
+		
+		return points.toArray(new Point[] {});
 	}
 
 	private static String valueOf(List<Tree> list) {
