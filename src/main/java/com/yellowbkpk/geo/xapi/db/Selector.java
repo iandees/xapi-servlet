@@ -74,13 +74,13 @@ public abstract class Selector {
 		}
     }
 
-    public class Changeset extends Selector {
+    public static class Changeset extends Selector {
         public Changeset(int changeset) {
             super(" changeset_id == ?", changeset);
         }
     }
 
-    public class Uid extends Selector {
+    public static class Uid extends Selector {
         public Uid(int uid) {
             super(" user_id == ?", uid);
         }
