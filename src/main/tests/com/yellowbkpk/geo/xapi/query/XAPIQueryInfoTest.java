@@ -33,6 +33,7 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(info.getTagSelectors().size(), 1);
 
             Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             Assert.assertEquals(sel.getWhereParam().get(1), "restaurant");
@@ -70,11 +71,50 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(info.getKind(), RequestType.RELATION);
 
             Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Uid.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), 1);
 
         } catch (XAPIParseException e) {
-            Assert.fail("Shouldn't fail parsing bboxes.", e);
+            Assert.fail("Shouldn't fail parsing user ID.", e);
+        }
+    }
+
+    @Test
+    public void testFromStringByUserName() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("way[@user=TestUser]");
+            // tag selectors is a misnomer - it's all selectors except the bbox one
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.WAY);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.User.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 1);
+            Assert.assertEquals(sel.getWhereParam().get(0), "TestUser");
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing user ID.", e);
+        }
+    }
+
+    @Test
+    public void testFromStringByChangesetID() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("*[@changeset=1]");
+            // tag selectors is a misnomer - it's all selectors except the bbox one
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.ALL);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Changeset.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 1);
+            Assert.assertEquals(sel.getWhereParam().get(0), 1);
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing user ID.", e);
         }
     }
 }

@@ -85,4 +85,10 @@ public abstract class Selector {
             super(" user_id == ?", uid);
         }
     }
+
+    public static class User extends Selector {
+        public User(String name) {
+            super("user_name = ?", name);
+        }
+    }
 }

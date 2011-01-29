@@ -101,10 +101,17 @@ public class XAPIQueryInfo {
             }
         }
 
+        predicateTrees = map.get("USER_PREDICATE");
+        if (predicateTrees != null) {
+            for (Tree predicateTree : predicateTrees) {
+                selectors.add(buildUserSelector(predicateTree));
+            }
+        }
+
 		return new XAPIQueryInfo(type, selectors, bboxSelectors);
 	}
 
-	private static Selector[] buildTagSelector(Tree predicateTree) {
+    private static Selector[] buildTagSelector(Tree predicateTree) {
 		Map<String, List<Tree>> children = childNodes(predicateTree);
 		Tree leftTree = children.get("LEFT").get(0);
 		Tree rightTree = children.get("RIGHT").get(0);
@@ -165,6 +172,11 @@ public class XAPIQueryInfo {
         return new Selector.Changeset(Integer.parseInt(changesetIdAsText));
     }
 	
+    private static Selector.User buildUserSelector(Tree predicateTree) {
+        String userName = predicateTree.getChild(0).getText();
+        return new Selector.User(userName);
+    }
+
 	private static Point[] decodePolygonString(String encoded) {
 		int i = 0;
 		char[] charArray = encoded.toCharArray();
