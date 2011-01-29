@@ -95,7 +95,7 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(sel.getWhereParam().get(0), "TestUser");
 
         } catch (XAPIParseException e) {
-            Assert.fail("Shouldn't fail parsing user ID.", e);
+            Assert.fail("Shouldn't fail parsing user name.", e);
         }
     }
 
@@ -114,7 +114,74 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(sel.getWhereParam().get(0), 1);
 
         } catch (XAPIParseException e) {
-            Assert.fail("Shouldn't fail parsing user ID.", e);
+            Assert.fail("Shouldn't fail parsing changeset ID.", e);
+        }
+    }
+
+    @Test
+    public void testFromStringWildcard() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=*]");
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.ALL);
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 1);
+            Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing amenities with wildcard.", e);
+        }
+    }
+
+    @Test
+    public void testFromStringWildcardMultipleKeys() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity|shop=*]");
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.ALL);
+            Assert.assertEquals(info.getTagSelectors().size(), 2);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 1);
+            Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
+
+            Selector sel2 = info.getTagSelectors().get(1);
+            Assert.assertEquals(sel2.getClass(), Selector.Tag.Wildcard.class);
+            Assert.assertEquals(sel2.getWhereParam().size(), 1);
+            Assert.assertEquals(sel2.getWhereParam().get(0), "shop");
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing amenities/shops with wildcard.", e);
+        }
+    }
+
+
+    @Test
+    public void testFromStringMultipleValues() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant]");
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.ALL);
+            Assert.assertEquals(info.getTagSelectors().size(), 2);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Tag.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 2);
+            Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
+            Assert.assertEquals(sel.getWhereParam().get(1), "pub");
+
+            Selector sel2 = info.getTagSelectors().get(1);
+            Assert.assertEquals(sel2.getClass(), Selector.Tag.class);
+            Assert.assertEquals(sel2.getWhereParam().size(), 2);
+            Assert.assertEquals(sel2.getWhereParam().get(0), "amenity");
+            Assert.assertEquals(sel2.getWhereParam().get(1), "restaurant");
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing amenities with many values.", e);
         }
     }
 }
