@@ -184,4 +184,48 @@ public class XAPIQueryInfoTest {
             Assert.fail("Shouldn't fail parsing amenities with many values.", e);
         }
     }
+
+    @Test
+    public void testFromStringInvalid() {
+        assertDoesNotParse("*[amenity");
+        assertDoesNotParse("*[amenity]");
+        assertDoesNotParse("*[amenity=]");
+        assertDoesNotParse("*[amenity=");
+        assertDoesNotParse("*[=pub]");
+        assertDoesNotParse("*[amenity=pub|]");
+        assertDoesNotParse("*[amenity=*|]");
+        assertDoesNotParse("*[*=pub]");
+        assertDoesNotParse("nodes[amenity=pub]");
+        assertDoesNotParse("node[]");
+        assertDoesNotParse("node[@uid=non_numeric]");
+        assertDoesNotParse("node[@changeset=non_numeric]");
+    }
+
+    @Test
+    public void testFromStringValid() {
+        // colons and unicode text should parse OK
+        assertDoesParse("node[name:ja=ウィキペディアにようこそ]");
+        // underscores and semicolons are commonly-used in OSM tags
+        assertDoesParse("*[nonsense_variable_names=foo;bar;baz;bat]");
+        // check that escaping pipes works ok
+        assertDoesParse("*[foo\\|bar=something]");
+    }
+
+    private void assertDoesNotParse(String query) {
+        boolean gotException = false;
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString(query);
+        } catch (XAPIParseException e) {
+            gotException = true;
+        }
+        Assert.assertTrue(gotException, "Should have got an exception trying to parse invalid query string: " + query);
+    }
+
+    private void assertDoesParse(String query) {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString(query);
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing valid query: " + query + ".", e);
+        }
+    }
 }

@@ -57,7 +57,12 @@ public class XAPIQueryInfo {
             XAPILexer lexer = new XAPILexer(stream);
 			CommonTokenStream tokens = new CommonTokenStream(lexer);
 			XAPIParser parser = new XAPIParser(tokens);
-			return fromAST((CommonTree) parser.xapi().getTree());
+            CommonTree tree = (CommonTree) parser.xapi().getTree();
+            List<String> errors = parser.getErrors();
+            if (!errors.isEmpty()) {
+                throw new XAPIParseException(new Exception(errors.get(0)));
+            }
+            return fromAST(tree);
 		} catch (RecognitionException e) {
 			throw new XAPIParseException(e);
 		}
