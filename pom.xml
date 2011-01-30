@@ -47,6 +47,34 @@
   		<type>jar</type>
   		<scope>compile</scope>
   	</dependency>
+  	<dependency>
+  		<groupId>org.openstreetmap.osmosis</groupId>
+  		<artifactId>json</artifactId>
+  		<version>0.36-SNAPSHOT</version>
+  		<type>jar</type>
+  		<scope>compile</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.openstreetmap.osmosis</groupId>
+  		<artifactId>pgsnapshot</artifactId>
+  		<version>0.36-SNAPSHOT</version>
+  		<type>jar</type>
+  		<scope>compile</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.openstreetmap.osmosis</groupId>
+  		<artifactId>core</artifactId>
+  		<version>0.36-SNAPSHOT</version>
+  		<type>jar</type>
+  		<scope>compile</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>postgresql</groupId>
+  		<artifactId>postgresql</artifactId>
+  		<version>8.3-606.jdbc4</version>
+  		<type>jar</type>
+  		<scope>compile</scope>
+  	</dependency>
   </dependencies>
   <build>
      <plugins>
