@@ -77,7 +77,7 @@ public class ApiServlet extends HttpServlet {
 		
 		// Build up a writer connected to the response output stream
 		response.setContentType("application/json");
-//		response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
 		
 		OutputStream outputStream = response.getOutputStream();
 		String acceptEncodingHeader = request.getHeader("Accept-Encoding");
