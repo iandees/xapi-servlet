@@ -89,7 +89,7 @@ public class ApiServlet extends HttpServlet {
 		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 		
 		// Serialize to the client
-		Sink sink = new org.openstreetmap.osmosis.json.v0_6.JsonWriter(out);
+		Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
 		
 		try {
 			while (bboxData.hasNext()) {

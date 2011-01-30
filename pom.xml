@@ -42,13 +42,6 @@
   	</dependency>
   	<dependency>
   		<groupId>org.openstreetmap.osmosis</groupId>
-  		<artifactId>json</artifactId>
-  		<version>0.36-SNAPSHOT</version>
-  		<type>jar</type>
-  		<scope>compile</scope>
-  	</dependency>
-  	<dependency>
-  		<groupId>org.openstreetmap.osmosis</groupId>
   		<artifactId>pgsnapshot</artifactId>
   		<version>0.36-SNAPSHOT</version>
   		<type>jar</type>
