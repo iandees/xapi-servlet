@@ -71,7 +71,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 	private PostgreSqlEntityManager<Node> nodeManager;
 	private PostgreSqlEntityManager<Way> wayManager;
 	private PostgreSqlEntityManager<Relation> relationManager;
-	private PolygonBuilder polygonBuilder;
 	
 	
 	/**
@@ -85,8 +84,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 	public PostgreSqlDatasetContext(DatabaseLoginCredentials loginCredentials, DatabasePreferences preferences) {
 		this.loginCredentials = loginCredentials;
 		this.preferences = preferences;
-		
-		polygonBuilder = new PolygonBuilder();
 		
 		initialized = false;
 	}
@@ -256,7 +253,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		bboxPoints[2] = new Point(right, top);
 		bboxPoints[3] = new Point(right, bottom);
 		bboxPoints[4] = new Point(left, bottom);
-		bboxPolygon = polygonBuilder.createPolygon(bboxPoints);
+		bboxPolygon = PolygonBuilder.createPolygon(bboxPoints);
 		
 		// Select all nodes inside the box into the node temp table.
 		LOG.finer("Selecting all nodes inside bounding box.");
