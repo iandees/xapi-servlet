@@ -998,7 +998,40 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
 	public ReleasableIterator<EntityContainer> iterateRelations(
 			List<Long> ids) {
-		// TODO Auto-generated method stub
-		return null;
+		int rowCount;
+		List<ReleasableIterator<EntityContainer>> resultSets;
+		
+		if (!initialized) {
+			initialize();
+		}
+		
+		// PostgreSQL sometimes incorrectly chooses to perform full table scans, these options
+		// prevent this. Note that this is not recommended practice according to documentation
+		// but fixing this would require modifying the table statistics gathering
+		// configuration to produce better plans.
+		jdbcTemplate.update("SET enable_seqscan = false");
+		jdbcTemplate.update("SET enable_mergejoin = false");
+		jdbcTemplate.update("SET enable_hashjoin = false");
+		
+		LOG.finer("Creating nodes table with single ID.");
+        String idsSql = buildListSql(ids);
+		rowCount = jdbcTemplate.update(
+                "CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
+                + " SELECT * FROM relations WHERE id IN " + idsSql,
+                ids.toArray());
+		
+		LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
+		jdbcTemplate.update("ANALYZE bbox_relations");
+		
+		// Create iterators for the selected records for each of the entity types.
+		LOG.finer("Iterating over results.");
+		resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
+		resultSets.add(
+				new UpcastIterator<EntityContainer, RelationContainer>(
+						new RelationContainerIterator(relationDao.iterate("bbox_"))));
+
+		// Merge all readers into a single result iterator and return.			
+		return new MultipleSourceIterator<EntityContainer>(resultSets);
+	
 	}
 }
