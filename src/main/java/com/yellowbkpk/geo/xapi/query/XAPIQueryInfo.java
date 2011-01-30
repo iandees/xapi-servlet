@@ -53,8 +53,8 @@ public class XAPIQueryInfo {
 	
 	public static XAPIQueryInfo fromString(String str) throws XAPIParseException {
 		try {
-			CharStream stream = new ANTLRStringStream(str);
-			XAPILexer lexer = new XAPILexer(stream);
+            CharStream stream = new ANTLRStringStream(str);
+            XAPILexer lexer = new XAPILexer(stream);
 			CommonTokenStream tokens = new CommonTokenStream(lexer);
 			XAPIParser parser = new XAPIParser(tokens);
 			return fromAST((CommonTree) parser.xapi().getTree());
@@ -65,7 +65,7 @@ public class XAPIQueryInfo {
 
 	private static XAPIQueryInfo fromAST(Tree tree) {
 		Map<String, List<Tree>> map = childNodes(tree);
-		
+
 		RequestType type = RequestType.fromValue(valueOf(map.get("REQUEST_KIND")));
 		
 		List<Selector> selectors = new LinkedList<Selector>();
@@ -86,7 +86,21 @@ public class XAPIQueryInfo {
 				}
 			}
 		}
-		
+
+        predicateTrees = map.get("UID_PREDICATE");
+        if (predicateTrees != null) {
+            for (Tree predicateTree : predicateTrees) {
+                selectors.add(buildUidSelector(predicateTree));
+            }
+        }
+
+        predicateTrees = map.get("CHANGESET_PREDICATE");
+        if (predicateTrees != null) {
+            for (Tree predicateTree : predicateTrees) {
+                selectors.add(buildChangesetSelector(predicateTree));
+            }
+        }
+
 		return new XAPIQueryInfo(type, selectors, bboxSelectors);
 	}
 
@@ -140,6 +154,16 @@ public class XAPIQueryInfo {
 		Point[] points = decodePolygonString(encoded);
 		return new Selector.Polygon(points);
 	}
+
+    private static Selector.Uid buildUidSelector(Tree predicateTree) {
+        String uidAsText = predicateTree.getChild(0).getText();
+        return new Selector.Uid(Integer.parseInt(uidAsText));
+    }
+
+    private static Selector.Changeset buildChangesetSelector(Tree predicateTree) {
+        String changesetIdAsText = predicateTree.getChild(0).getText();
+        return new Selector.Changeset(Integer.parseInt(changesetIdAsText));
+    }
 	
 	private static Point[] decodePolygonString(String encoded) {
 		int i = 0;
