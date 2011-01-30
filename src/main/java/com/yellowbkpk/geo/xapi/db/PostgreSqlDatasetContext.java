@@ -2,6 +2,7 @@
 package com.yellowbkpk.geo.xapi.db;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -879,8 +880,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 	}
 
 
-	public ReleasableIterator<EntityContainer> iterateSingleNode(
-			long primitiveId) {
+	public ReleasableIterator<EntityContainer> iterateNodes(
+			List<Long> ids) {
 		int rowCount;
 		List<ReleasableIterator<EntityContainer>> resultSets;
 		
@@ -897,10 +898,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		jdbcTemplate.update("SET enable_hashjoin = false");
 		
 		LOG.finer("Creating nodes table with single ID.");
-        rowCount = jdbcTemplate.update(
+        String idsSql = buildListSql(ids);
+		rowCount = jdbcTemplate.update(
                 "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
-                + " SELECT * FROM nodes WHERE id = ?",
-                primitiveId);
+                + " SELECT * FROM nodes WHERE id IN " + idsSql,
+                ids.toArray());
 		
 		LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
 		jdbcTemplate.update("ANALYZE bbox_nodes");
@@ -918,7 +920,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 	}
 
 
-	public ReleasableIterator<EntityContainer> iterateSingleWay(long primitiveId) {
+	public ReleasableIterator<EntityContainer> iterateWays(List<Long> ids) {
 		int rowCount;
 		List<ReleasableIterator<EntityContainer>> resultSets;
 		
@@ -939,7 +941,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE FALSE");
 		
-		rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways WHERE id = ?", primitiveId);
+        String idsSql = buildListSql(ids);
+		rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways WHERE id IN " + idsSql, ids.toArray());
 			
 		LOG.finer(rowCount + " rows affected.");
 		
@@ -981,8 +984,23 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 	}
 
 
-	public ReleasableIterator<EntityContainer> iterateSingleRelation(
-			long primitiveId) {
+	private String buildListSql(List<Long> ids) {
+		StringBuilder idsSql = new StringBuilder("(");
+        Iterator<Long> iterator = ids.iterator();
+        while(iterator.hasNext()) {
+        	iterator.next();
+        	idsSql.append("?");
+        	if(iterator.hasNext()) {
+        		idsSql.append(", ");
+        	}
+        }
+        idsSql.append(")");
+		return idsSql.toString();
+	}
+
+
+	public ReleasableIterator<EntityContainer> iterateRelations(
+			List<Long> ids) {
 		// TODO Auto-generated method stub
 		return null;
 	}
