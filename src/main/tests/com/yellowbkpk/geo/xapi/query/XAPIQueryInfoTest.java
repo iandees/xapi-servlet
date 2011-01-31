@@ -207,8 +207,24 @@ public class XAPIQueryInfoTest {
         assertDoesParse("node[name:ja=ウィキペディアにようこそ]");
         // underscores and semicolons are commonly-used in OSM tags
         assertDoesParse("*[nonsense_variable_names=foo;bar;baz;bat]");
-        // check that escaping pipes works ok
-        assertDoesParse("*[foo\\|bar=something]");
+        /* here's what the xapi docs have to say about escaping:
+         *
+         * Values within predicates can be escaped by prefixing a backslash character.
+         * The following characters can be escaped in this way: | [ ] * / = ( ) \ and space
+         */
+        assertDoesParseTag("*[foo\\|bar=something]", "foo|bar", "something");
+        assertDoesParseTag("*[foo\\[bar\\]=something]", "foo[bar]", "something");
+        assertDoesParseTag("*[foo\\*bar=something]", "foo*bar", "something");
+        // note: is this going to work with the servlet's url parsing?
+        assertDoesParseTag("*[foo\\/bar=something]", "foo/bar", "something");
+        assertDoesParseTag("*[foo\\=bar=something]", "foo=bar", "something");
+        assertDoesParseTag("*[foo\\(bar\\)=something]", "foo(bar)", "something");
+        assertDoesParseTag("*[foo\\\\bar=something]", "foo\\bar", "something");
+        // note: although this doesn't, strictly speaking, need to be escaped, it seems to be
+        // part of the previous XAPI implementation's spec.
+        assertDoesParseTag("*[foo\\ bar=something]", "foo bar", "something");
+        // note: not sure why it doesn't, but the list should clearly include '@' as well...
+        assertDoesParseTag("*[foo\\@bar=something]", "foo@bar", "something");
     }
 
     private void assertDoesNotParse(String query) {
@@ -224,6 +240,21 @@ public class XAPIQueryInfoTest {
     private void assertDoesParse(String query) {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString(query);
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing valid query: " + query + ".", e);
+        }
+    }
+
+    private void assertDoesParseTag(String query, String key, String value) {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString(query);
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Tag.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 2);
+            Assert.assertEquals(sel.getWhereParam().get(0), key);
+            Assert.assertEquals(sel.getWhereParam().get(1), value);
+
         } catch (XAPIParseException e) {
             Assert.fail("Shouldn't fail parsing valid query: " + query + ".", e);
         }
