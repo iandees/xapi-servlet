@@ -1,20 +1,14 @@
 package com.yellowbkpk.geo.xapi.query;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.antlr.runtime.ANTLRStringStream;
-import org.antlr.runtime.CharStream;
-import org.antlr.runtime.CommonTokenStream;
-import org.antlr.runtime.RecognitionException;
-import org.antlr.runtime.tree.CommonTree;
-import org.antlr.runtime.tree.Tree;
 import org.postgis.Point;
 
-import com.yellowbkpk.geo.xapi.antlr.XAPILexer;
-import com.yellowbkpk.geo.xapi.antlr.XAPIParser;
 import com.yellowbkpk.geo.xapi.db.Selector;
 
 public class XAPIQueryInfo {
@@ -39,6 +33,9 @@ public class XAPIQueryInfo {
 		public static RequestType fromValue(String v) {
 			return val.get(v);
 		}
+        public String getT() {
+            return t;
+        }
 	}
 
 	private RequestType type;
@@ -52,135 +49,328 @@ public class XAPIQueryInfo {
 	}
 	
 	public static XAPIQueryInfo fromString(String str) throws XAPIParseException {
-		try {
-            CharStream stream = new ANTLRStringStream(str);
-            XAPILexer lexer = new XAPILexer(stream);
-			CommonTokenStream tokens = new CommonTokenStream(lexer);
-			XAPIParser parser = new XAPIParser(tokens);
-            CommonTree tree = (CommonTree) parser.xapi().getTree();
-            List<String> errors = parser.getErrors();
-            if (!errors.isEmpty()) {
-                throw new XAPIParseException(new Exception(errors.get(0)));
-            }
-            return fromAST(tree);
-		} catch (RecognitionException e) {
-			throw new XAPIParseException(e);
-		}
-	}
+        ParseState state = new ParseState(str);
+        List<Selector> selectors = new LinkedList<Selector>();
+        List<Selector.BoundingBox> bboxSelectors = new LinkedList<Selector.BoundingBox>();
 
-	private static XAPIQueryInfo fromAST(Tree tree) {
-		Map<String, List<Tree>> map = childNodes(tree);
+        RequestType type = parseRequestType(state);
+        if (type == RequestType.MAP) {
+            bboxSelectors.add(parseBboxSelector(state));
 
-		RequestType type = RequestType.fromValue(valueOf(map.get("REQUEST_KIND")));
-		
-		List<Selector> selectors = new LinkedList<Selector>();
-		List<Selector.BoundingBox> bboxSelectors = new LinkedList<Selector.BoundingBox>();
-		List<Tree> predicateTrees = map.get("BBOX_PREDICATE");
-		if(predicateTrees != null) {
-			for (Tree predicateTree : predicateTrees) {
-				bboxSelectors.add(buildBboxSelector(predicateTree));
-			}
-		}
-		
-		predicateTrees = map.get("TAG_PREDICATE");
-		if(predicateTrees != null) {
-			for (Tree predicateTree : predicateTrees) {
-				Selector[] tags = buildTagSelector(predicateTree);
-				for (Selector selector : tags) {
-					selectors.add(selector);
-				}
-			}
-		}
+        } else {
+            while (state.hasRemaining()) {
+                List<Selector> sels = parseBracketedSelector(state);
 
-        predicateTrees = map.get("UID_PREDICATE");
-        if (predicateTrees != null) {
-            for (Tree predicateTree : predicateTrees) {
-                selectors.add(buildUidSelector(predicateTree));
+                for (Selector sel : sels) {
+                    if (sel instanceof Selector.BoundingBox) {
+                        bboxSelectors.add((Selector.BoundingBox)sel);
+                    } else {
+                        selectors.add(sel);
+                    }
+                }
             }
         }
 
-        predicateTrees = map.get("CHANGESET_PREDICATE");
-        if (predicateTrees != null) {
-            for (Tree predicateTree : predicateTrees) {
-                selectors.add(buildChangesetSelector(predicateTree));
+        return new XAPIQueryInfo(type, selectors, bboxSelectors);
+	}
+
+    private static class ParseState {
+        private StringBuffer buf = null;
+
+        ParseState(String s) {
+            buf = new StringBuffer(s);
+        }
+
+        boolean canConsume(String s) {
+            if (s.length() > buf.length()) {
+                return false;
+            } else {
+                String t = buf.substring(0, s.length());
+                if (s.equals(t)) {
+                    buf.delete(0, s.length());
+                    return true;
+                } else {
+                    return false;
+                }
             }
         }
 
-        predicateTrees = map.get("USER_PREDICATE");
-        if (predicateTrees != null) {
-            for (Tree predicateTree : predicateTrees) {
-                selectors.add(buildUserSelector(predicateTree));
+        void expect(String s) throws XAPIParseException {
+            if (s.length() > buf.length()) {
+                throw new XAPIParseException("Expecting '" + s + "' but found end-of-string.");
+            } else {
+                String t = buf.substring(0, s.length());
+                if (s.equals(t)) {
+                    buf.delete(0, s.length());
+                } else {
+                    int length = Math.min(s.length() + 2, buf.length());
+                    throw new XAPIParseException("Expecting '" + s + "', but found '" + peek(length) + "'.");
+                }
             }
         }
 
-		return new XAPIQueryInfo(type, selectors, bboxSelectors);
-	}
+        boolean hasRemaining() {
+            return buf.length() > 0;
+        }
 
-    private static Selector[] buildTagSelector(Tree predicateTree) {
-		Map<String, List<Tree>> children = childNodes(predicateTree);
-		Tree leftTree = children.get("LEFT").get(0);
-		Tree rightTree = children.get("RIGHT").get(0);
-		
-		String[] leftValues = childTreeText(leftTree);
-		String[] rightValues = childTreeText(rightTree);
-		
-		// Wildcard on the right
-		if(rightValues.length == 1 && rightValues[0].equals("*")) {
-			Selector.Tag.Wildcard[] retVal = new Selector.Tag.Wildcard[leftValues.length];
-			int i = 0;
-			for (String value : leftValues) {
-				retVal[i++] = new Selector.Tag.Wildcard(value);
-			}
-			return retVal;
-		}
-		
-		Selector[] selectors = new Selector[leftValues.length * rightValues.length];
-		int i = 0;
-		for (String left : leftValues) {
-			for (String right : rightValues) {
-				selectors[i++] = new Selector.Tag(left, right);
-			}
-		}
-		return selectors;
-	}
+        String peek(int n) throws XAPIParseException {
+            if (n > buf.length()) {
+                throw new XAPIParseException("Attempt to peek " + n + " characters, but there aren't that many left.");
+            }
+            return buf.substring(0, n);
+        }
 
-	private static String[] childTreeText(Tree tree) {
-		String[] ret = new String[tree.getChildCount()];
-		for (int i = 0; i < tree.getChildCount(); i++) {
-			ret[i] = tree.getChild(i).getText();
-		}
-		return ret;
-	}
+        void skip(int n) throws XAPIParseException {
+            if (n > buf.length()) {
+                throw new XAPIParseException("Attempt to skip " + n + " characters, but there aren't that many left.");
+            }
+            buf.delete(0, n);
+        }
 
-	private static Selector.BoundingBox buildBboxSelector(Tree predicateTree) {
-		double left = Double.parseDouble(predicateTree.getChild(0).getText());
-		double bottom = Double.parseDouble(predicateTree.getChild(1).getText());
-		double right = Double.parseDouble(predicateTree.getChild(2).getText());
-		double top = Double.parseDouble(predicateTree.getChild(3).getText());
-		return new Selector.BoundingBox(left, right, top, bottom);
-	}
+        ParseState copy() {
+            return new ParseState(buf.toString());
+        }
+    }
 
+    private static RequestType parseRequestType(ParseState state) throws XAPIParseException {
+        for (RequestType type : RequestType.values()) {
+            if (state.canConsume(type.getT())) {
+                return type;
+            }
+        }
+        throw new XAPIParseException("Query string should start with node, way, relation or *.");
+    }
+
+    private static List<Selector> parseBracketedSelector(ParseState state) throws XAPIParseException {
+        state.expect("[");
+        List<Selector> sels = parseSelector(state);
+        state.expect("]");
+        return sels;
+    }
+
+    private static List<Selector> parseSelector(ParseState state) throws XAPIParseException {
+        List<Selector> selectors = new LinkedList<Selector>();
+
+        if (state.canConsume("@")) {
+            selectors.add(parseAttributeSelector(state));
+        } else {
+            List<String> maybeKeys = parseKeys(state);
+
+            if (state.canConsume("=")) {
+                if (maybeKeys.size() == 1 && maybeKeys.get(0).equals("bbox")) {
+                    selectors.add(parseBboxRHS(state));
+                } else if (maybeKeys.size() > 0) {
+                    selectors.addAll(parseTagSelectors(maybeKeys, state));
+                } else {
+                    throw new XAPIParseException("Cannot parse tag query with unescaped special characters.");
+                }
+            } else {
+                // looks like a child element predicate
+                // currently don't handle
+                throw new XAPIParseException("Don't handle child predicates yet...");
+            }
+        }
+
+        return selectors;
+    }
+
+    private static Selector.BoundingBox parseBboxSelector(ParseState state) throws XAPIParseException {
+        state.expect("bbox=");
+        return parseBboxRHS(state);
+    }
+
+    private static Selector.BoundingBox parseBboxRHS(ParseState state) throws XAPIParseException {
+        Double left = parseDouble(state);
+        state.expect(",");
+        Double bottom = parseDouble(state);
+        state.expect(",");
+        Double right = parseDouble(state);
+        state.expect(",");
+        Double top = parseDouble(state);
+        return new Selector.BoundingBox(left, right, top, bottom);
+    }
+
+    private static void fillDigits(ParseState state, StringBuffer buf) throws XAPIParseException {
+        while (Character.isDigit(state.peek(1).codePointAt(0))) {
+            buf.append(state.peek(1)); state.skip(1);
+        }
+    }
+
+    private static boolean consumeAppend(String s, ParseState state, StringBuffer buf) {
+        if (state.canConsume(s)) {
+            buf.append(s);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private static Double parseDouble(ParseState state) throws XAPIParseException {
+        StringBuffer buf = new StringBuffer();
+        consumeAppend("-", state, buf);
+        fillDigits(state, buf);
+        if (consumeAppend(".", state, buf)) {
+            fillDigits(state, buf);
+        }
+        if (state.canConsume("e") || state.canConsume("E")) {
+            buf.append("e");
+            consumeAppend("+", state, buf);
+            consumeAppend("-", state, buf);
+            fillDigits(state, buf);
+        }
+        try {
+            return Double.parseDouble(buf.toString());
+        } catch (NumberFormatException ex) {
+            throw new XAPIParseException(ex);
+        }
+    }
+
+    private static Selector parseAttributeSelector(ParseState state) throws XAPIParseException {
+        if (state.canConsume("user")) {
+            state.expect("=");
+            return new Selector.User(parseUnescaped(state));
+
+        } else if (state.canConsume("uid")) {
+            state.expect("=");
+            return new Selector.Uid(parseInt(state));
+
+        } else if (state.canConsume("changeset")) {
+            state.expect("=");
+            return new Selector.Changeset(parseInt(state));
+
+        } else {
+            throw new XAPIParseException("Attribute selector not recognised.");
+        }
+    }
+
+    private static List<String> parseKeys(ParseState state) throws XAPIParseException {
+        List<String> keys = new LinkedList<String>();
+
+        // parse first key, which might have some special characters in it, just not
+        // the pipe character for key separation, or the equals character.
+        keys.add(parseUnescaped(state));
+
+        if (state.canConsume("|")) {
+            do {
+                keys.add(parseUnescaped(state));
+            } while (state.canConsume("|"));
+        }
+
+        return keys;
+    }
+
+    enum SpecialChar {
+        LEFT_SQ_BRACKET("["),
+        RIGHT_SQ_BRACKET("]"),
+        LEFT_PAREN("["),
+        RIGHT_PAREN("]"),
+        ASTERISK("*"),
+        KV_SEPARATOR("|"),
+        KEY_SEPARATOR("=");
+
+        private String s;
+        SpecialChar(String str) {
+            s = str;
+        }
+        String getS() { return s; }
+    }
+
+    private static boolean hasSpecialCharacters(String s) throws XAPIParseException {
+        for (SpecialChar sp : SpecialChar.values()) {
+            if (s.indexOf(sp.getS()) != -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<Selector> parseTagSelectors(List<String> keys, ParseState state) throws XAPIParseException {
+        List<Selector> selectors = new LinkedList<Selector>();
+
+        if (state.canConsume("*")) {
+            // RHS is wildcard
+            for (String k : keys) {
+                selectors.add(new Selector.Tag.Wildcard(k));
+            }
+        } else {
+            // RHS is list of values
+            List<String> values = parseKeys(state);
+            for (String k : keys) {
+                for (String v : values) {
+                    selectors.add(new Selector.Tag(k, v));
+                }
+            }
+        }
+
+        return selectors;
+    }
+
+    private static Integer parseInt(ParseState state) throws XAPIParseException {
+        StringBuffer buf = new StringBuffer();
+        consumeAppend("-", state, buf);
+        fillDigits(state, buf);
+        try {
+            return Integer.parseInt(buf.toString());
+        } catch (NumberFormatException ex) {
+            throw new XAPIParseException(ex);
+        }
+    }
+
+    /**
+     * Parse a string from the parser state, allowing special characters except for the multiple key separator and
+     * key/value separator ('|' and '=').
+     *
+     * @param state Parser state.
+     * @return String read from parser.
+     * @throws XAPIParseException
+     */
+    private static String parseEscaped(ParseState state) throws XAPIParseException {
+        StringBuffer buf = new StringBuffer();
+        do {
+            String next = state.peek(1);
+            if (next.equals("=") || next.equals("|")) {
+                break;
+            }
+            buf.append(next);
+            state.skip(1);
+        } while (true);
+
+        if (buf.length() < 1) {
+            throw new XAPIParseException("Unable to find a string at '" + state.peek(1) + "'.");
+        }
+
+        return buf.toString();
+    }
+
+    private static String parseUnescaped(ParseState state) throws XAPIParseException {
+        StringBuffer buf = new StringBuffer();
+        do {
+            String next = state.peek(1);
+            for (SpecialChar ch : SpecialChar.values()) {
+                if (next.equals(ch.getS())) {
+                    if (buf.length() < 1) {
+                        throw new XAPIParseException("Unable to find a string at '" + state.peek(1) + "'.");
+                    }
+
+                    return buf.toString();
+                }
+            }
+            if (next.equals("\\")) {
+                state.skip(1);
+                next = state.peek(1);
+            }
+            buf.append(next);
+            state.skip(1);
+        } while (true);
+    }
+
+    /*
 	private static Selector.Polygon buildPolygonSelector(Tree predicateTree) {
 		String encoded = predicateTree.getChild(0).getText();
 		
 		Point[] points = decodePolygonString(encoded);
 		return new Selector.Polygon(points);
 	}
-
-    private static Selector.Uid buildUidSelector(Tree predicateTree) {
-        String uidAsText = predicateTree.getChild(0).getText();
-        return new Selector.Uid(Integer.parseInt(uidAsText));
-    }
-
-    private static Selector.Changeset buildChangesetSelector(Tree predicateTree) {
-        String changesetIdAsText = predicateTree.getChild(0).getText();
-        return new Selector.Changeset(Integer.parseInt(changesetIdAsText));
-    }
-	
-    private static Selector.User buildUserSelector(Tree predicateTree) {
-        String userName = predicateTree.getChild(0).getText();
-        return new Selector.User(userName);
-    }
 
 	private static Point[] decodePolygonString(String encoded) {
 		int i = 0;
@@ -216,24 +406,7 @@ public class XAPIQueryInfo {
 		
 		return points.toArray(new Point[] {});
 	}
-
-	private static String valueOf(List<Tree> list) {
-		return list.get(0).getChild(0).getText();
-	}
-
-	private static Map<String, List<Tree>> childNodes(Tree tree) {
-		Map<String, List<Tree>> ret = new HashMap<String, List<Tree>>();
-		for(int i = 0; i < tree.getChildCount(); i++) {
-			Tree child = tree.getChild(i);
-			List<Tree> children = ret.get(child.getText());
-			if(children == null) {
-				children = new LinkedList<Tree>();
-				ret.put(child.getText(), children);
-			}
-			children.add(child);
-		}
-		return ret;
-	}
+	*/
 
 	public RequestType getKind() {
 		return type;

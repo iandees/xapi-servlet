@@ -223,8 +223,8 @@ public class XAPIQueryInfoTest {
         // note: although this doesn't, strictly speaking, need to be escaped, it seems to be
         // part of the previous XAPI implementation's spec.
         assertDoesParseTag("*[foo\\ bar=something]", "foo bar", "something");
-        // note: not sure why it doesn't, but the list should clearly include '@' as well...
-        assertDoesParseTag("*[foo\\@bar=something]", "foo@bar", "something");
+        // check that @s at the beginning can be escaped without being interpreted as an attribute selector
+        assertDoesParseTag("*[\\@foobar=something]", "@foobar", "something");
     }
 
     private void assertDoesNotParse(String query) {
