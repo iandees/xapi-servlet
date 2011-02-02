@@ -59,7 +59,7 @@ public class XAPIQueryInfo {
 
         } else {
             while (state.hasRemaining()) {
-                List<Selector> sels = parseBracketedSelector(state);
+                List<Selector> sels = parseBracketedSelector(state, type);
 
                 for (Selector sel : sels) {
                     if (sel instanceof Selector.BoundingBox) {
@@ -141,14 +141,14 @@ public class XAPIQueryInfo {
         throw new XAPIParseException("Query string should start with node, way, relation or *.");
     }
 
-    private static List<Selector> parseBracketedSelector(ParseState state) throws XAPIParseException {
+    private static List<Selector> parseBracketedSelector(ParseState state, RequestType type) throws XAPIParseException {
         state.expect("[");
-        List<Selector> sels = parseSelector(state);
+        List<Selector> sels = parseSelector(state, type);
         state.expect("]");
         return sels;
     }
 
-    private static List<Selector> parseSelector(ParseState state) throws XAPIParseException {
+    private static List<Selector> parseSelector(ParseState state, RequestType type) throws XAPIParseException {
         List<Selector> selectors = new LinkedList<Selector>();
 
         if (state.canConsume("@")) {
@@ -166,12 +166,74 @@ public class XAPIQueryInfo {
                 }
             } else {
                 // looks like a child element predicate
-                // currently don't handle
-                throw new XAPIParseException("Don't handle child predicates yet...");
+                if (maybeKeys.size() == 1) {
+                    selectors.add(parseChildPredicate(maybeKeys.get(0), type));
+                } else {
+                    throw new XAPIParseException("Cannot parse - expression does not look like child predicate selector.");
+                }
             }
         }
 
         return selectors;
+    }
+
+    private static Selector parseChildPredicate(String key, RequestType type) throws XAPIParseException {
+        ParseState state = new ParseState(key);
+        boolean negateTest = false;
+        Selector selector = null;
+
+        if (state.canConsume("not(")) {
+            negateTest = true;
+        }
+
+        if (state.canConsume("tag")) {
+            selector = new Selector.ChildPredicate.Tag(negateTest);
+
+        } else {
+            if (type == RequestType.NODE) {
+                if (state.canConsume("way")) {
+                    throw new XAPIParseException("Unimplemented");
+
+                } else {
+                    throw new XAPIParseException("Unexpected child predicate on node. Expected: way or tag.");
+                }
+
+            } else if (type == RequestType.WAY) {
+                if (state.canConsume("nd")) {
+                    selector = new Selector.ChildPredicate.WayNode(negateTest);
+
+                } else {
+                    throw new XAPIParseException("Unexpected child predicate on way. Expected: nd or tag.");
+                }
+
+            } else if (type == RequestType.RELATION) {
+                if (state.canConsume("node")) {
+                    selector = Selector.ChildPredicate.RelationMember.node(negateTest);
+
+                } else if (state.canConsume("way")) {
+                    selector = Selector.ChildPredicate.RelationMember.way(negateTest);
+
+                } else if (state.canConsume("relation")) {
+                    selector = Selector.ChildPredicate.RelationMember.relation(negateTest);
+
+                } else {
+                    throw new XAPIParseException("Unexpected child predicate on relation. Expected: node, way, relation or tag.");
+                }
+
+            } else {
+                throw new XAPIParseException("Child predicate on request types other than node, way and relation are not supported.");
+            }
+        }
+
+        if (negateTest) {
+            state.expect(")");
+        }
+
+        if (selector == null) {
+            throw new XAPIParseException("Child predicate expression not recognised.");
+        }
+
+        return selector;
     }
 
     private static Selector.BoundingBox parseBboxSelector(ParseState state) throws XAPIParseException {

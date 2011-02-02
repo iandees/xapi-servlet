@@ -119,6 +119,57 @@ public class XAPIQueryInfoTest {
     }
 
     @Test
+    public void testFromStringByChildPredicateWayNode() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("way[not(nd)]");
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.WAY);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.ChildPredicate.WayNode.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 0);
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing way with no nodes child predicate.");
+        }
+    }
+
+    @Test
+    public void testFromStringByChildPredicateRelationRelation() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("relation[relation]");
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.RELATION);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.ChildPredicate.RelationMember.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 0);
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing relation with relation child predicate.");
+        }
+    }
+
+    @Test
+    public void testFromStringByChildPredicateNodeTag() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("node[tag]");
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getKind(), RequestType.NODE);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.ChildPredicate.Tag.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 0);
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing node with tag child predicate.");
+        }
+    }
+
+    @Test
     public void testFromStringWildcard() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=*]");
@@ -199,6 +250,13 @@ public class XAPIQueryInfoTest {
         assertDoesNotParse("node[]");
         assertDoesNotParse("node[@uid=non_numeric]");
         assertDoesNotParse("node[@changeset=non_numeric]");
+
+        // testing child predicates against the wrong types
+        assertDoesNotParse("node[nd]");
+        assertDoesNotParse("node[not(nd)]");
+        assertDoesNotParse("node[relation]");
+        assertDoesNotParse("way[relation]");
+        assertDoesNotParse("relation[nd]");
     }
 
     @Test

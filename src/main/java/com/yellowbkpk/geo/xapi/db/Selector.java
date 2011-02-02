@@ -91,4 +91,39 @@ public abstract class Selector {
             super("user_name = ?", name);
         }
     }
+
+    public static class ChildPredicate extends Selector {
+        protected ChildPredicate(String string, Object... params) {
+            super(string, params);
+        }
+
+        // selects those elements which have tags, or no tags if negateQuery is true.
+        public static class Tag extends ChildPredicate {
+            public Tag(boolean negateQuery) {
+                super(" array_length(akeys(tags),1) is" + (negateQuery ? "" : " not") + " null");
+            }
+        }
+
+        // selects those ways which have nodes, or no nodes if negateQuery is true.
+        public static class WayNode extends ChildPredicate {
+            public WayNode(boolean negateQuery) {
+                super(" array_length(nodes,1) is" + (negateQuery ? "" : " not") + " null");
+            }
+        }
+
+        public static class RelationMember extends ChildPredicate {
+            private RelationMember(boolean negateQuery, String memberType) {
+                super((negateQuery ? " not" : "") + " exists(select relation_id from relation_members where relation_id = id and member_type='" + memberType + "')");
+            }
+            public static RelationMember node(boolean negateQuery) {
+                return new RelationMember(negateQuery, "N");
+            }
+            public static RelationMember way(boolean negateQuery) {
+                return new RelationMember(negateQuery, "W");
+            }
+            public static RelationMember relation(boolean negateQuery) {
+                return new RelationMember(negateQuery, "R");
+            }
+        }
+    }
 }
