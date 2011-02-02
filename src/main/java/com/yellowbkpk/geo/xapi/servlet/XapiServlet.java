@@ -51,23 +51,9 @@ public class XapiServlet extends HttpServlet {
 		
 		// Query DB
 		long start = System.currentTimeMillis();
-		ReleasableIterator<EntityContainer> bboxData;
-		PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
-		if(XAPIQueryInfo.RequestType.NODE.equals(info.getKind())) {
-			bboxData = datasetReader.iterateSelectedNodes(info.getBboxSelectors(), info.getTagSelectors());
-		} else if(XAPIQueryInfo.RequestType.WAY.equals(info.getKind())) {
-			bboxData = datasetReader.iterateSelectedWays(info.getBboxSelectors(), info.getTagSelectors());
-		} else if(XAPIQueryInfo.RequestType.RELATION.equals(info.getKind())) {
-			bboxData = datasetReader.iterateSelectedRelations(info.getBboxSelectors(), info.getTagSelectors());
-		} else if(XAPIQueryInfo.RequestType.ALL.equals(info.getKind())) {
-			bboxData = datasetReader.iterateSelectedPrimitives(info.getBboxSelectors(), info.getTagSelectors());
-		} else if(XAPIQueryInfo.RequestType.MAP.equals(info.getKind())) {
-			Selector.BoundingBox boundingBox = info.getBboxSelectors().get(0);
-			bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(),
-														boundingBox.getRight(),
-														boundingBox.getTop(),
-														boundingBox.getBottom(), true);
-		} else {
+        PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+        ReleasableIterator<EntityContainer> bboxData = makeRequestIterator(datasetReader, info);
+        if (bboxData == null) {
 			response.sendError(500, "Unsupported operation.");
 			return;
 		}
@@ -107,4 +93,33 @@ public class XapiServlet extends HttpServlet {
 		long end = System.currentTimeMillis();
 		log.info("Serialization complete: " + (end - middle) + "ms");
 	}
+
+    /**
+     * Creates an Osmosis releasable iterator over all the elements which are selected by the query.
+     *
+     * @param datasetReader The database context to use when executing queries.
+     * @param info Object encapsulating the query information.
+     * @return An iterator over all the entities which match the query, or null if the query could not be executed.
+     */
+    public static ReleasableIterator<EntityContainer> makeRequestIterator(PostgreSqlDatasetContext datasetReader, XAPIQueryInfo info) {
+        ReleasableIterator<EntityContainer> bboxData = null;
+
+        if(XAPIQueryInfo.RequestType.NODE.equals(info.getKind())) {
+            bboxData = datasetReader.iterateSelectedNodes(info.getBboxSelectors(), info.getTagSelectors());
+        } else if(XAPIQueryInfo.RequestType.WAY.equals(info.getKind())) {
+            bboxData = datasetReader.iterateSelectedWays(info.getBboxSelectors(), info.getTagSelectors());
+        } else if(XAPIQueryInfo.RequestType.RELATION.equals(info.getKind())) {
+            bboxData = datasetReader.iterateSelectedRelations(info.getBboxSelectors(), info.getTagSelectors());
+        } else if(XAPIQueryInfo.RequestType.ALL.equals(info.getKind())) {
+            bboxData = datasetReader.iterateSelectedPrimitives(info.getBboxSelectors(), info.getTagSelectors());
+        } else if(XAPIQueryInfo.RequestType.MAP.equals(info.getKind())) {
+            Selector.BoundingBox boundingBox = info.getBboxSelectors().get(0);
+            bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(),
+                                                        boundingBox.getRight(),
+                                                        boundingBox.getTop(),
+                                                        boundingBox.getBottom(), true);
+        }
+
+        return bboxData;
+    }
 }
