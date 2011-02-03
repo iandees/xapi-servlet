@@ -528,6 +528,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 			obj.append(selector.getWhereString());
 			first = false;
 		}
+        if (first) {
+            // empty selector, put in a null statement which postgres should just optimise away
+            obj.append("(1=1)");
+        }
 		return obj.toString();
 	}
 

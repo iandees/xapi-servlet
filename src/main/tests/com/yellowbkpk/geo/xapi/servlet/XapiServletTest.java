@@ -12,18 +12,16 @@ import org.openstreetmap.osmosis.core.domain.v0_6.Node;
 import org.openstreetmap.osmosis.core.domain.v0_6.OsmUser;
 import org.openstreetmap.osmosis.core.domain.v0_6.Tag;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
+import org.openstreetmap.osmosis.pgsnapshot.common.DatabaseContext;
 import org.openstreetmap.osmosis.pgsnapshot.common.NodeLocationStoreType;
 import org.openstreetmap.osmosis.pgsnapshot.v0_6.PostgreSqlCopyWriter;
 import org.openstreetmap.osmosis.pgsnapshot.v0_6.PostgreSqlTruncator;
 import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Tests of the XAPI servlet functionality.
@@ -34,28 +32,50 @@ import java.util.Set;
 public class XapiServletTest {
     private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi_test", "xapi", "xapi", true, false, null);
     private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
+    private DatabaseContext dbCtx = null;
 
-    @BeforeMethod(alwaysRun = true)
-    public void populateDB() {
-        PostgreSqlCopyWriter writer = new PostgreSqlCopyWriter(loginCredentials, preferences, NodeLocationStoreType.InMemory);
-        Date timestamp = new Date();
-        LinkedList<Tag> tags = new LinkedList<Tag>();
-        tags.add(new Tag("amenity", "pub"));
-        writer.process(new NodeContainer(new Node(1, 1, timestamp, OsmUser.NONE, 1, tags, 0.0, 0.0)));
-        writer.complete();
-    }
+    /**
+     * @return The data to be used to fill the database for the tests.
+     */
+    private Collection<EntityContainer> dataSample() {
+        LinkedList<EntityContainer> list = new LinkedList<EntityContainer>();
 
-    @AfterMethod(alwaysRun = true)
-    public void truncateDB() {
-        PostgreSqlTruncator truncator = new PostgreSqlTruncator(loginCredentials, preferences);
-        truncator.run();
+        list.add(node(1, 1, 0.0, 0.0, "amenity", "pub"));
+        list.add(node(2, 1, 1.0, 1.0, "amenity", "pub"));
+        list.add(node(3, 1, 0.0, 0.0, "amenity", "restaurant"));
+
+        return list;
     }
 
     @Test
     public void testTagNodeSelection() {
         HashSet<EntityRef> expected = new HashSet<EntityRef>();
         expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
         execQuery("node[amenity=pub]", expected);
+
+        expected.clear();
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("node[amenity=restaurant]", expected);
+    }
+
+    @Test
+    public void testTagNodeWildcardSelection() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("node[amenity=*]", expected);
+    }
+
+    @Test
+    public void testTagAndBboxNodeSelection() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        execQuery("node[amenity=pub][bbox=-0.01,-0.01,0.01,0.01]", expected);
+
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("node[bbox=-0.01,-0.01,0.01,0.01][amenity=*]", expected);
     }
 
     /**
@@ -102,7 +122,13 @@ public class XapiServletTest {
         }
     }
 
-    public void execQuery(String query, Set<EntityRef> expectedResults) {
+    /**
+     * Executes a query and compares it to the expected result.
+     *
+     * @param query The XAPI URL query to make.
+     * @param expectedResults Set of entities which are expected to be returned.
+     */
+    private void execQuery(String query, Set<EntityRef> expectedResults) {
         XAPIQueryInfo info = null;
         try {
             info = XAPIQueryInfo.fromString(query);
@@ -113,14 +139,83 @@ public class XapiServletTest {
         PostgreSqlDatasetContext context = new PostgreSqlDatasetContext(loginCredentials, preferences);
         ReleasableIterator<EntityContainer> iterator = XapiServlet.makeRequestIterator(context, info);
 
-        HashSet<EntityRef> workingSet = new HashSet<EntityRef>(expectedResults);
-        while (iterator.hasNext()) {
-            EntityContainer ent = iterator.next();
-            EntityRef ref = new EntityRef(ent.getEntity().getType(), ent.getEntity().getId());
-            Assert.assertTrue(workingSet.contains(ref), "Unexpected element.");
-            workingSet.remove(ref);
-        }
+        try {
+            HashSet<EntityRef> workingSet = new HashSet<EntityRef>(expectedResults);
+            while (iterator.hasNext()) {
+                EntityContainer ent = iterator.next();
+                EntityRef ref = new EntityRef(ent.getEntity().getType(), ent.getEntity().getId());
+                Assert.assertTrue(workingSet.contains(ref), "Unexpected element.");
+                workingSet.remove(ref);
+            }
 
-        Assert.assertTrue(workingSet.isEmpty(), "Returned set doesn't contain all expected elements.");
+            Assert.assertTrue(workingSet.isEmpty(), "Returned set doesn't contain all expected elements.");
+
+        } finally {
+            iterator.release();
+            iterator = null;
+
+            context.complete();
+            context.release();
+            context = null;
+        }
     }
+
+    // utility function to build a node
+    private EntityContainer node(long id, int version, double lon, double lat, String... tags) {
+        Date timestamp = new Date();
+        LinkedList<Tag> constructedTags = new LinkedList<Tag>();
+        for (int i = 0; i < tags.length; i += 2) {
+            constructedTags.add(new Tag(tags[i], tags[i+1]));
+        }
+        Node n = new Node(id, version, timestamp, OsmUser.NONE, 1, constructedTags, lon, lat);
+        return new NodeContainer(n);
+    }
+
+    // internal function to drop all data to the database (ensure that the tests are run on the same
+    // data each time.)
+    private void truncate() {
+        dbCtx = new DatabaseContext(loginCredentials);
+
+        // make sure that the table is empty first
+        PostgreSqlTruncator truncator = new PostgreSqlTruncator(loginCredentials, preferences);
+        truncator.run();
+
+        // the truncator will release the database context anyway...
+        dbCtx = null;
+    }
+
+    // internal method to setup the data being used in the tests.
+    private void setupSample() {
+        dbCtx = new DatabaseContext(loginCredentials);
+
+        // then copy in the sample data
+        PostgreSqlCopyWriter writer = new PostgreSqlCopyWriter(loginCredentials, preferences, NodeLocationStoreType.InMemory);
+        Collection<EntityContainer> ents = dataSample();
+        for (EntityContainer ec : ents) {
+            writer.process(ec);
+        }
+        writer.complete();
+        writer.release();
+
+        dbCtx.release();
+        dbCtx = null;
+    }
+
+    @BeforeClass(alwaysRun = true)
+    public void populateDB() {
+        truncate();
+
+        setupSample();
+
+        dbCtx = new DatabaseContext(loginCredentials);
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void truncateDB() {
+        dbCtx.release();
+        dbCtx = null;
+
+        truncate();
+    }
+
 }
