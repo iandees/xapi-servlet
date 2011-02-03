@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 
@@ -31,7 +33,7 @@ public class ApiServlet extends HttpServlet {
 			throws ServletException, IOException {
 		// Parse URL
 		String primitiveType;
-		long primitiveId;
+		ArrayList<Long> ids = new ArrayList<Long>();
 		try {
 			StringBuffer urlBuffer = request.getRequestURL();
 			if (request.getQueryString() != null) {
@@ -43,8 +45,14 @@ public class ApiServlet extends HttpServlet {
 			String primitiveIdStr = reqUrl.substring(lastSlash + 1);
 			primitiveType = reqUrl.substring(secondSlash + 1, lastSlash);
 			primitiveIdStr = URLDecoder.decode(primitiveIdStr, "UTF-8");
-			primitiveId = Long.parseLong(primitiveIdStr);
-			log.info("Query for " + primitiveType + " #" + primitiveIdStr);
+			
+			String[] primitiveIds = primitiveIdStr.split(",");
+			ids.ensureCapacity(primitiveIds.length);
+			for (String string : primitiveIds) {
+				ids.add(Long.parseLong(string));
+			}
+			
+			log.info("Query for " + primitiveType + " " + primitiveIdStr);
 		} catch (NumberFormatException e) {
 			response.sendError(500, "Could not parse query: " + e.getMessage());
 			return;
@@ -55,11 +63,11 @@ public class ApiServlet extends HttpServlet {
 		ReleasableIterator<EntityContainer> bboxData;
 		PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
 		if("node".equals(primitiveType)) {
-			bboxData = datasetReader.iterateSingleNode(primitiveId);
+			bboxData = datasetReader.iterateNodes(ids);
 		} else if("way".equals(primitiveType)) {
-			bboxData = datasetReader.iterateSingleWay(primitiveId);
+			bboxData = datasetReader.iterateWays(ids);
 		} else if("relation".equals(primitiveType)) {
-			bboxData = datasetReader.iterateSingleRelation(primitiveId);
+			bboxData = datasetReader.iterateRelations(ids);
 		} else {
 			response.sendError(500, "Unsupported operation.");
 			return;
@@ -68,7 +76,7 @@ public class ApiServlet extends HttpServlet {
 		log.info("Query complete: " + (middle - start) + "ms");
 		
 		// Build up a writer connected to the response output stream
-		response.setContentType("text/xml; charset=utf-8");
+		response.setContentType("application/json");
 		response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
 		
 		OutputStream outputStream = response.getOutputStream();
