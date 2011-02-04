@@ -12,13 +12,13 @@
   		<version>2.4</version>
                 <scope>provided</scope>
   	</dependency>
-  	<dependency>
+  	<!-- <dependency>
   		<groupId>xapi-antlr</groupId>
   		<artifactId>xapi-antlr</artifactId>
   		<version>1.0-SNAPSHOT</version>
   		<type>jar</type>
   		<scope>compile</scope>
-  	</dependency>
+  	</dependency> -->
   	<dependency>
   		<groupId>org.postgis</groupId>
   		<artifactId>postgis-jdbc</artifactId>
@@ -40,12 +40,6 @@
   		<type>jar</type>
   		<scope>compile</scope>
   	</dependency>
-      <dependency>
-        <groupId>org.testng</groupId>
-        <artifactId>testng</artifactId>
-        <version>5.14</version>
-        <scope>test</scope>
-      </dependency>
   	<dependency>
   		<groupId>org.openstreetmap.osmosis</groupId>
   		<artifactId>xml</artifactId>
@@ -73,6 +67,25 @@
   		<version>8.4-702.jdbc4</version>
   		<type>jar</type>
   		<scope>compile</scope>
+  	</dependency>
+	<dependency>
+          <groupId>org.testng</groupId>
+          <artifactId>testng</artifactId>
+          <version>5.14</version>
+          <scope>test</scope>
+	</dependency>
+	<dependency>
+	  <groupId>commons-dbcp</groupId>
+	  <artifactId>commons-dbcp</artifactId>
+	  <version>1.4</version>
+	  <scope>test</scope>
+	</dependency>
+  	<dependency>
+  	  <groupId>org.openstreetmap.osmosis</groupId>
+  	  <artifactId>hstore</artifactId>
+  	  <version>0.36-SNAPSHOT</version>
+  	  <type>jar</type>
+  	  <scope>test</scope>
   	</dependency>
   </dependencies>
   <build>
