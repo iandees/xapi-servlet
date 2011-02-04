@@ -503,6 +503,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 			obj.append(selector.getWhereString());
 			first = false;
 		}
+        if (first) {
+            // empty selector, put in a null statement which postgres should just optimise away
+            obj.append("(1=1)");
+        }
 		return obj.toString();
 	}
 
@@ -741,17 +745,17 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		// Select all nodes inside the box into the node temp table.
 		LOG.finer("Selecting all nodes inside bounding box.");
 		StringBuilder sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes ");
-		if(bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
+		if(bboxWhereObj.size() > 0 || tagSelectors.size() > 0) {
 			sql.append("WHERE ");
 			if(bboxWhereObj.size() > 0) {
 				sql.append("(");
 				sql.append(bboxWhereStr);
 				sql.append(")");
-				if(tagsWhereObj.size() > 0) {
+				if(tagSelectors.size() > 0) {
 					sql.append(" AND ");
 				}
 			}
-			if(tagsWhereObj.size() > 0) {
+			if(tagSelectors.size() > 0) {
 				sql.append("(");
 				sql.append(tagsWhereStr);
 				sql.append(")");
@@ -770,17 +774,17 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		// We have full way geometry available so select ways
 		// overlapping the requested bounding box.
 		sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways ");
-		if(bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
+		if(bboxWhereObj.size() > 0 || tagSelectors.size() > 0) {
 			sql.append("WHERE ");
 			if(bboxWhereObj.size() > 0) {
 				sql.append("(");
 				sql.append(bboxWhereStr.replaceAll("geom", "linestring")); //FIXME
 				sql.append(")");
-				if(tagsWhereObj.size() > 0) {
+				if(tagSelectors.size() > 0) {
 					sql.append(" AND ");
 				}
 			}
-			if(tagsWhereObj.size() > 0) {
+			if(tagSelectors.size() > 0) {
 				sql.append("(");
 				sql.append(tagsWhereStr);
 				sql.append(")");

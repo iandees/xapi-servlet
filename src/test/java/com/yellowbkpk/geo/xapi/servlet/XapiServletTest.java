@@ -43,10 +43,16 @@ public class XapiServletTest {
         list.add(node(1, 1, 0.0, 0.0, "amenity", "pub"));
         list.add(node(2, 1, 1.0, 1.0, "amenity", "pub"));
         list.add(node(3, 1, 0.0, 0.0, "amenity", "restaurant"));
+        list.add(node(4, 1, 0.0, 0.0));
+        list.add(node(5, 1, 2.0, 2.0, "shop", "pub"));
+        list.add(node(6, 1, 2.0, 2.0, "shop", "supermarket"));
 
         return list;
     }
 
+    /**** tag selection tests ****/
+
+    // simple tag selection
     @Test
     public void testTagNodeSelection() {
         HashSet<EntityRef> expected = new HashSet<EntityRef>();
@@ -59,6 +65,7 @@ public class XapiServletTest {
         execQuery("node[amenity=restaurant]", expected);
     }
 
+    // wildcard tag selection
     @Test
     public void testTagNodeWildcardSelection() {
         HashSet<EntityRef> expected = new HashSet<EntityRef>();
@@ -68,6 +75,112 @@ public class XapiServletTest {
         execQuery("node[amenity=*]", expected);
     }
 
+    // wildcard tag selection on any type
+    @Test
+    public void testTagAnyWildcardSelection() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("*[amenity=*]", expected);
+    }
+
+    // select by tag using multiple keys
+    @Test
+    public void testTagWithMultipleKeys() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 5));
+        execQuery("node[amenity|shop=pub]", expected);
+    }
+
+    // select by tag using multiple values
+    @Test
+    public void testTagWithMultipleValues() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("node[amenity=pub|restaurant]", expected);
+        execQuery("node[amenity=pub][amenity=restaurant]", expected);
+    }
+
+    // select by tag using multiple keys and wildcard
+
+    /**** bbox selection tests ****/
+
+    @Test
+    public void testBboxNodeSelection() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        expected.add(new EntityRef(EntityType.Node, 4));
+        execQuery("node[bbox=-0.01,-0.01,0.01,0.01]", expected);
+    }
+
+    @Test
+    public void testBboxAnySelection() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        expected.add(new EntityRef(EntityType.Node, 4));
+        execQuery("*[bbox=-0.01,-0.01,0.01,0.01]", expected);
+    }
+
+    /**** child predicate tests ****/
+
+    // node has no tags
+    @Test
+    public void testNodeChildPredicateNotTags() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 4));
+        execQuery("node[not(tag)]", expected);
+    }
+
+    // node has tags
+    @Test
+    public void testNodeChildPredicateTags() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        expected.add(new EntityRef(EntityType.Node, 5));
+        expected.add(new EntityRef(EntityType.Node, 6));
+        execQuery("node[tag]", expected);
+    }
+
+    // anything which has no tags
+    @Test
+    public void testAnyChildPredicateNotTags() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 4));
+        execQuery("*[not(tag)]", expected);
+    }
+
+    // has way nodes
+
+    // has no way nodes
+
+    // node is used in a way
+
+    // node is not used in a way
+
+    // relation has node member
+
+    // relation has no node members
+
+    // relation has way member
+
+    // relation has no way members
+
+    // relation has relation member
+
+    // relation has no relation members
+
+    /**** multiple selector tests ****/
+
+    // test tag & bbox
     @Test
     public void testTagAndBboxNodeSelection() {
         HashSet<EntityRef> expected = new HashSet<EntityRef>();
@@ -77,6 +190,12 @@ public class XapiServletTest {
         expected.add(new EntityRef(EntityType.Node, 3));
         execQuery("node[bbox=-0.01,-0.01,0.01,0.01][amenity=*]", expected);
     }
+
+    // child predicate and bbox
+
+    // multiple tag selectors (not supported by original XAPI?)
+
+    // relation has only relation members
 
     /**
      * Simple tuple-class of entity type and ID to allow the expected results of the tests to
@@ -144,11 +263,25 @@ public class XapiServletTest {
             while (iterator.hasNext()) {
                 EntityContainer ent = iterator.next();
                 EntityRef ref = new EntityRef(ent.getEntity().getType(), ent.getEntity().getId());
-                Assert.assertTrue(workingSet.contains(ref), "Unexpected element.");
+                // don't bother to account for bound elements at the moment...
+                if (ent.getEntity().getType() != EntityType.Bound) {
+                    if (!workingSet.contains(ref)) {
+                        Assert.fail("Unexpected element: " + ref.toString() + ".");
+                    }
+                }
                 workingSet.remove(ref);
             }
 
-            Assert.assertTrue(workingSet.isEmpty(), "Returned set doesn't contain all expected elements.");
+            if (!workingSet.isEmpty()) {
+                StringBuilder str = new StringBuilder();
+                str.append("Returned set doesn't contain all expected elements. Missing: [");
+                for (EntityRef ref : workingSet) {
+                    str.append(ref.toString());
+                    str.append(", ");
+                }
+                str.append("].");
+                Assert.fail(str.toString());
+            }
 
         } finally {
             iterator.release();
