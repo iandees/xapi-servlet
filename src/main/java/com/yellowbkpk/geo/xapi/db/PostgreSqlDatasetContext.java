@@ -583,17 +583,17 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		// We have full way geometry available so select ways
 		// overlapping the requested bounding box.
 		StringBuilder sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways ");
-		if(bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
+		if(bboxWhereObj.size() > 0 || tagSelectors.size() > 0) {
 			sql.append("WHERE ");
 			if(bboxWhereObj.size() > 0) {
 				sql.append("(");
 				sql.append(bboxWhereStr);
 				sql.append(")");
-				if(tagsWhereObj.size() > 0) {
+				if(tagSelectors.size() > 0) {
 					sql.append(" AND ");
 				}
 			}
-			if(tagsWhereObj.size() > 0) {
+			if(tagSelectors.size() > 0) {
 				sql.append("(");
 				sql.append(tagsWhereStr);
 				sql.append(")");

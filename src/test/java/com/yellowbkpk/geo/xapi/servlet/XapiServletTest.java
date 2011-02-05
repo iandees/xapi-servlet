@@ -5,12 +5,11 @@ import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
 import org.openstreetmap.osmosis.core.container.v0_6.NodeContainer;
+import org.openstreetmap.osmosis.core.container.v0_6.RelationContainer;
+import org.openstreetmap.osmosis.core.container.v0_6.WayContainer;
 import org.openstreetmap.osmosis.core.database.DatabaseLoginCredentials;
 import org.openstreetmap.osmosis.core.database.DatabasePreferences;
-import org.openstreetmap.osmosis.core.domain.v0_6.EntityType;
-import org.openstreetmap.osmosis.core.domain.v0_6.Node;
-import org.openstreetmap.osmosis.core.domain.v0_6.OsmUser;
-import org.openstreetmap.osmosis.core.domain.v0_6.Tag;
+import org.openstreetmap.osmosis.core.domain.v0_6.*;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.pgsnapshot.common.DatabaseContext;
 import org.openstreetmap.osmosis.pgsnapshot.common.NodeLocationStoreType;
@@ -46,6 +45,17 @@ public class XapiServletTest {
         list.add(node(4, 1, 0.0, 0.0));
         list.add(node(5, 1, 2.0, 2.0, "shop", "pub"));
         list.add(node(6, 1, 2.0, 2.0, "shop", "supermarket"));
+
+        long way1_nodes[] = {1, 2, 3};
+        long way2_nodes[] = {};
+        list.add(way(1, 1, way1_nodes, "highway", "residential"));
+        list.add(way(2, 1, way2_nodes, "highway", "residential"));
+
+        RelationMember rel1_members[] = {
+                new RelationMember(1, EntityType.Node, "foo"),
+                new RelationMember(1, EntityType.Way, "bar")
+        };
+        list.add(relation(1, 1, rel1_members, "type", "route"));
 
         return list;
     }
@@ -107,6 +117,16 @@ public class XapiServletTest {
     }
 
     // select by tag using multiple keys and wildcard
+    @Test
+    public void testTagWithMultipleKeysAndWildcard() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        expected.add(new EntityRef(EntityType.Node, 5));
+        expected.add(new EntityRef(EntityType.Node, 6));
+        execQuery("node[amenity|shop=*]", expected);
+    }
 
     /**** bbox selection tests ****/
 
@@ -125,6 +145,11 @@ public class XapiServletTest {
         expected.add(new EntityRef(EntityType.Node, 1));
         expected.add(new EntityRef(EntityType.Node, 3));
         expected.add(new EntityRef(EntityType.Node, 4));
+        // note that the way also brings in node#2, even though it's outside the bbox
+        expected.add(new EntityRef(EntityType.Way, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        // and it brings in the relation via node#1.
+        expected.add(new EntityRef(EntityType.Relation, 1));
         execQuery("*[bbox=-0.01,-0.01,0.01,0.01]", expected);
     }
 
@@ -159,14 +184,52 @@ public class XapiServletTest {
     }
 
     // has way nodes
+    @Test
+    public void testWayHasNodes() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Way, 1));
+        // way result will also return the nodes belonging to the way...
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("way[nd]", expected);
+    }
 
     // has no way nodes
+    @Test
+    public void testWayHasNoNodes() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Way, 2));
+        execQuery("way[not(nd)]", expected);
+    }
 
     // node is used in a way
+    @Test
+    public void testNodeIsUsedInWay() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 1));
+        expected.add(new EntityRef(EntityType.Node, 2));
+        expected.add(new EntityRef(EntityType.Node, 3));
+        execQuery("node[way]", expected);
+    }
 
     // node is not used in a way
+    @Test
+    public void testNodeIsNotUsedInWay() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Node, 4));
+        expected.add(new EntityRef(EntityType.Node, 5));
+        expected.add(new EntityRef(EntityType.Node, 6));
+        execQuery("node[not(way)]", expected);
+    }
 
     // relation has node member
+    @Test
+    public void testRelationHasNodeMember() {
+        HashSet<EntityRef> expected = new HashSet<EntityRef>();
+        expected.add(new EntityRef(EntityType.Relation, 1));
+        execQuery("relation[node]", expected);
+    }
 
     // relation has no node members
 
@@ -293,7 +356,7 @@ public class XapiServletTest {
         }
     }
 
-    // utility function to build a node
+    // utility function to build elements
     private EntityContainer node(long id, int version, double lon, double lat, String... tags) {
         Date timestamp = new Date();
         LinkedList<Tag> constructedTags = new LinkedList<Tag>();
@@ -302,6 +365,32 @@ public class XapiServletTest {
         }
         Node n = new Node(id, version, timestamp, OsmUser.NONE, 1, constructedTags, lon, lat);
         return new NodeContainer(n);
+    }
+    private WayContainer way(long id, int version, long[] way_nodes, String... tags) {
+        Date timestamp = new Date();
+        LinkedList<Tag> constructedTags = new LinkedList<Tag>();
+        for (int i = 0; i < tags.length; i += 2) {
+            constructedTags.add(new Tag(tags[i], tags[i+1]));
+        }
+        LinkedList<WayNode> wn = new LinkedList<WayNode>();
+        for (long nID : way_nodes) {
+            wn.add(new WayNode(nID));
+        }
+        Way w = new Way(id, version, timestamp, OsmUser.NONE, 1, constructedTags, wn);
+        return new WayContainer(w);
+    }
+    private RelationContainer relation(long id, int version, RelationMember mems[], String... tags) {
+        Date timestamp = new Date();
+        LinkedList<Tag> constructedTags = new LinkedList<Tag>();
+        for (int i = 0; i < tags.length; i += 2) {
+            constructedTags.add(new Tag(tags[i], tags[i+1]));
+        }
+        LinkedList<RelationMember> rm = new LinkedList<RelationMember>();
+        for (RelationMember m : mems) {
+            rm.add(m);
+        }
+        Relation r = new Relation(id, version, timestamp, OsmUser.NONE, 1, constructedTags, rm);
+        return new RelationContainer(r);
     }
 
     // internal function to drop all data to the database (ensure that the tests are run on the same

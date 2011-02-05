@@ -107,6 +107,8 @@ public abstract class Selector {
         // selects those ways which have nodes, or no nodes if negateQuery is true.
         public static class WayNode extends ChildPredicate {
             public WayNode(boolean negateQuery) {
+                // alternative - not sure which is the better until it can be tested at scale:
+                // super((negateQuery ? " not" : "") + " exists(select way_id from way_nodes where way_id=id)");
                 super(" array_length(nodes,1) is" + (negateQuery ? "" : " not") + " null");
             }
         }
@@ -123,6 +125,13 @@ public abstract class Selector {
             }
             public static RelationMember relation(boolean negateQuery) {
                 return new RelationMember(negateQuery, "R");
+            }
+        }
+
+        // selects those nodes which are (or are not) used as part of a way
+        public static class NodeUsed extends ChildPredicate {
+            public NodeUsed(boolean negateQuery) {
+                super((negateQuery ? " not" : "") + " exists(select node_id from way_nodes where node_id=id)");
             }
         }
     }

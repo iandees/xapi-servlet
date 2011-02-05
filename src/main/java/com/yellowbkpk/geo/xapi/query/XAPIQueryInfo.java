@@ -192,7 +192,7 @@ public class XAPIQueryInfo {
         } else {
             if (type == RequestType.NODE) {
                 if (state.canConsume("way")) {
-                    throw new XAPIParseException("Unimplemented");
+                    selector = new Selector.ChildPredicate.NodeUsed(negateTest);
 
                 } else {
                     throw new XAPIParseException("Unexpected child predicate on node. Expected: way or tag.");
