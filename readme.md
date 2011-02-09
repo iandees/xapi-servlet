@@ -64,3 +64,4 @@ This app was built on the shoulders of other people's open source code:
 
 - bretth's Osmosis: for the database schema and querying code
 - emacsen's xapi-ui: for the HTML debugging page he created to help build XAPI query URLs
+- zere (and MapQuest's) help with everything; especially the parser!
