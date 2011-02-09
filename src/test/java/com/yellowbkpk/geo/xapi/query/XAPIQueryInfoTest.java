@@ -257,6 +257,10 @@ public class XAPIQueryInfoTest {
         assertDoesNotParse("node[relation]");
         assertDoesNotParse("way[relation]");
         assertDoesNotParse("relation[nd]");
+
+        // we shouldn't allow incorrectly-sized bounding boxes
+        assertDoesNotParse("map?bbox=123132,123123,123132,123123");
+        assertDoesNotParse("map?bbox=,,,");
     }
 
     @Test
@@ -267,9 +271,8 @@ public class XAPIQueryInfoTest {
         assertDoesParse("*[nonsense_variable_names=foo;bar;baz;bat]");
         // colons are commonly used, too
         assertDoesParse("*[osmc:symbol=red:white:heart]");
-        // we shouldn't allow incorrectly-sized bounding boxes
-        assertDoesNotParse("map?bbox=123132,123123,123132,123123");
-        assertDoesNotParse("map?bbox=,,,");
+        assertDoesParse("map?bbox=-91.59988,44.73503,-91.39389,44.86950");
+
         /* here's what the xapi docs have to say about escaping:
          *
          * Values within predicates can be escaped by prefixing a backslash character.

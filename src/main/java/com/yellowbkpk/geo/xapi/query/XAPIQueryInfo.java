@@ -253,7 +253,7 @@ public class XAPIQueryInfo {
     }
 
     private static void fillDigits(ParseState state, StringBuffer buf) throws XAPIParseException {
-        while (Character.isDigit(state.peek(1).codePointAt(0))) {
+        while (state.hasRemaining() && Character.isDigit(state.peek(1).codePointAt(0))) {
             buf.append(state.peek(1)); state.skip(1);
         }
     }
