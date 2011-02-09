@@ -249,6 +249,31 @@ public class XAPIQueryInfo {
         Double right = parseDouble(state);
         state.expect(",");
         Double top = parseDouble(state);
+        
+        if(left > right) {
+        	throw new XAPIParseException("Left is greater than right.");
+        }
+        
+        if(bottom > top) {
+        	throw new XAPIParseException("Bottom is greater than top.");
+        }
+        
+        if(bottom < -90 || bottom > 90) {
+        	throw new XAPIParseException("Bottom is out of range.");
+        }
+        
+        if(top < -90 || top > 90) {
+        	throw new XAPIParseException("Top is out of range.");
+        }
+        
+        if(left < -180 || left > 180) {
+        	throw new XAPIParseException("Left is out of range.");
+        }
+        
+        if(right < -180 || right > 180) {
+        	throw new XAPIParseException("Right is out of range.");
+        }
+        
         return new Selector.BoundingBox(left, right, top, bottom);
     }
 

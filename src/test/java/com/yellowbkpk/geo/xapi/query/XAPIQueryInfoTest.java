@@ -293,6 +293,22 @@ public class XAPIQueryInfoTest {
         assertDoesParseTag("*[\\@foobar=something]", "@foobar", "something");
     }
 
+    @Test
+    public void testFromStringValidation() {
+    	// Left greater than right
+        assertDoesNotParse("map?bbox=50.0,10.0,40.0,20.0");
+    	// Bottom greater than top
+        assertDoesNotParse("map?bbox=40.0,20.0,50.0,10.0");
+    	// Left outside bounds
+        assertDoesNotParse("map?bbox=450.0,10.0,40.0,20.0");
+    	// Right outside bounds
+        assertDoesNotParse("map?bbox=50.0,10.0,450.0,20.0");
+    	// Top outside bounds
+        assertDoesNotParse("map?bbox=50.0,500.0,40.0,20.0");
+    	// Bottom outside bounds
+        assertDoesNotParse("map?bbox=50.0,10.0,40.0,500.0");
+    }
+
     private void assertDoesNotParse(String query) {
         boolean gotException = false;
         try {
