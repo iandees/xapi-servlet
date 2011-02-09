@@ -265,6 +265,11 @@ public class XAPIQueryInfoTest {
         assertDoesParse("node[name:ja=ウィキペディアにようこそ]");
         // underscores and semicolons are commonly-used in OSM tags
         assertDoesParse("*[nonsense_variable_names=foo;bar;baz;bat]");
+        // colons are commonly used, too
+        assertDoesParse("*[osmc:symbol=red:white:heart]");
+        // we shouldn't allow incorrectly-sized bounding boxes
+        assertDoesNotParse("map?bbox=123132,123123,123132,123123");
+        assertDoesNotParse("map?bbox=,,,");
         /* here's what the xapi docs have to say about escaping:
          *
          * Values within predicates can be escaped by prefixing a backslash character.
