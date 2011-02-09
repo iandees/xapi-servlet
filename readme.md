@@ -46,17 +46,15 @@ Development
 I used Maven for the dependency and build management. Make sure you have `mvn` installed before
 doing any of this.
 
-1. Clone the github xapi-servlet and xapi-antlr repos
+1. Clone the github xapi-servlet repo
 
 2. Check out the Osmosis SVN code and Compile the JARs by executing `ant publish` from the root
 osmosis directory.
 
-3. Manually install the Osmosis dependencies into your local Maven repository by executing `mvn install:install-file -DgroupId=org.openstreetmap.osmosis -DartifactId=pgsnapshot -Dversion=0.36-SNAPSHOT -Dpackaging=jar -Dfile=build/binary/osmosis-pgsnapshot.jar` for the Osmosis `core`, `pgsnapshot`,
+3. Manually install the Osmosis dependencies into your local Maven repository by executing `mvn install:install-file -DgroupId=org.openstreetmap.osmosis -DartifactId=pgsnapshot -Dversion=0.36-SNAPSHOT -Dpackaging=jar -Dfile=build/binary/osmosis-pgsnapshot.jar` for the Osmosis `core`, `pgsnapshot`, `hstore-jdbc`
 and `xml` modules.
 
-4. Install the xapi-antlr module by running `mvn install` from the xapi-antlr directory.
-
-5. Finally, run `mvn compile war:war` from the xapi-servlet directory to generate a
+4. Finally, run `mvn compile war:war` from the xapi-servlet directory to generate a
 deployable servlet war.
 
 Thanks
