@@ -7,7 +7,6 @@ import java.util.List;
 public class XapiQueryStats {
 
 	private static final int MAX_STATS = 100;
-	private static List<XapiQueryStats> activeStats = new ArrayList<XapiQueryStats>(5);
 	private static List<XapiQueryStats> allStats = new ArrayList<XapiQueryStats>(100);
 	
 	private QueryState state;
@@ -39,7 +38,6 @@ public class XapiQueryStats {
 		this.request = reqUrl;
 		this.remoteHost = remoteHost;
 		this.state = QueryState.CONNECTED;
-		activeStats.add(this);
 	}
 
 	public void startDbQuery() {
@@ -56,7 +54,6 @@ public class XapiQueryStats {
 		completionTime = System.currentTimeMillis();
 		state = QueryState.DONE;
 		thread = null;
-		activeStats.remove(this);
 		if(allStats.size() > MAX_STATS) {
 			allStats.remove(allStats.size() - 1);
 			allStats.add(this);
@@ -68,7 +65,6 @@ public class XapiQueryStats {
 		state = QueryState.ERROR;
 		exception = e;
 		thread = null;
-		activeStats.remove(this);
 		if(allStats.size() > MAX_STATS) {
 			allStats.remove(allStats.size() - 1);
 			allStats.add(this);
@@ -87,10 +83,6 @@ public class XapiQueryStats {
 		return Collections.unmodifiableList(allStats);
 	}
 
-	public static synchronized List<XapiQueryStats> getActiveTrackers() {
-		return Collections.unmodifiableList(activeStats);
-	}
-
 	public String getRemoteAddress() {
 		return this.remoteHost;
 	}
@@ -101,6 +93,24 @@ public class XapiQueryStats {
 
 	public String getRequest() {
 		return this.request;
+	}
+
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public long getEndTime() {
+		return completionTime;
+	}
+
+	public boolean isActive() {
+		return !QueryState.ERROR.equals(state)
+				&& !QueryState.DONE.equals(state)
+				&& !QueryState.NOT_STARTED.equals(state);
+	}
+
+	public long getElementCount() {
+		return elementCount;
 	}
 
 }
