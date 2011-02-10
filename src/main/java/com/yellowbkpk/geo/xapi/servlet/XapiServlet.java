@@ -102,11 +102,10 @@ public class XapiServlet extends HttpServlet {
 			out.close();
 			long end = System.currentTimeMillis();
 			log.info("Serialization complete: " + (end - middle) + "ms");
+			tracker.complete();
 		} catch(IOException e) {
 			tracker.error(e);
 			throw e;
-		} finally {
-			tracker.complete();
 		}
 	}
 
