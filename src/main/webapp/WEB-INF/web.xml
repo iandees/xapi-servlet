@@ -21,4 +21,13 @@
     <servlet-name>Xapi</servlet-name>
     <url-pattern>/api/0.6/*</url-pattern>
   </servlet-mapping>
+  
+  <servlet>
+  	<servlet-name>Stats</servlet-name>
+  	<servlet-class>com.yellowbkpk.geo.xapi.admin.StatsServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>Stats</servlet-name>
+  	<url-pattern>/admin/stats</url-pattern>
+  </servlet-mapping>
 </web-app>

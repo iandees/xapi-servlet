@@ -19,6 +19,7 @@ import org.openstreetmap.osmosis.core.database.DatabasePreferences;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 
+import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
@@ -32,66 +33,81 @@ public class XapiServlet extends HttpServlet {
 	
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		// Parse URL
-		XAPIQueryInfo info = null;
+		XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
 		try {
-			StringBuffer urlBuffer = request.getRequestURL();
-			if (request.getQueryString() != null) {
-				urlBuffer.append("?").append(request.getQueryString());
-			}
-			String reqUrl = urlBuffer.toString();
-			String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
-			query = URLDecoder.decode(query, "UTF-8");
-			log.info("Query " + query);
-			info = XAPIQueryInfo.fromString(query);
-		} catch (XAPIParseException e) {
-			response.sendError(500, "Could not parse query: " + e.getMessage());
-			return;
-		}
-		
-		// Query DB
-		long start = System.currentTimeMillis();
-        PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
-        ReleasableIterator<EntityContainer> bboxData = makeRequestIterator(datasetReader, info);
-        if (bboxData == null) {
-			response.sendError(500, "Unsupported operation.");
-			return;
-		}
-		long middle = System.currentTimeMillis();
-		log.info("Query complete: " + (middle - start) + "ms");
-		
-		// Build up a writer connected to the response output stream
-		response.setContentType("text/xml; charset=utf-8");
-		response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
-		
-		OutputStream outputStream = response.getOutputStream();
-		String acceptEncodingHeader = request.getHeader("Accept-Encoding");
-		if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
-			outputStream = new GZIPOutputStream(outputStream);
-			response.setHeader("Content-Encoding", "gzip");
-		}
-		
-		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
-		
-		// Serialize to the client
-		Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
-		
-		try {
-			while (bboxData.hasNext()) {
-				sink.process(bboxData.next());
+			// Parse URL
+			XAPIQueryInfo info = null;
+			try {
+				StringBuffer urlBuffer = request.getRequestURL();
+				if (request.getQueryString() != null) {
+					urlBuffer.append("?").append(request.getQueryString());
+				}
+				String reqUrl = urlBuffer.toString();
+				String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
+				query = URLDecoder.decode(query, "UTF-8");
+				tracker.receivedUrl(query, request.getRemoteHost());
+				log.info("Query " + query);
+				info = XAPIQueryInfo.fromString(query);
+			} catch (XAPIParseException e) {
+				tracker.error(e);
+				response.sendError(500, "Could not parse query: " + e.getMessage());
+				return;
 			}
 			
-			sink.complete();
+			// Query DB
+			tracker.startDbQuery();
+			long start = System.currentTimeMillis();
+	        PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+	        ReleasableIterator<EntityContainer> bboxData = makeRequestIterator(datasetReader, info);
+	        if (bboxData == null) {
+				response.sendError(500, "Unsupported operation.");
+				return;
+			}
+			tracker.startSerialization();
+			long middle = System.currentTimeMillis();
+			log.info("Query complete: " + (middle - start) + "ms");
 			
+			// Build up a writer connected to the response output stream
+			response.setContentType("text/xml; charset=utf-8");
+			response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
+			
+			OutputStream outputStream = response.getOutputStream();
+			String acceptEncodingHeader = request.getHeader("Accept-Encoding");
+			if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
+				outputStream = new GZIPOutputStream(outputStream);
+				response.setHeader("Content-Encoding", "gzip");
+			}
+			
+			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
+			
+			// Serialize to the client
+			Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
+
+			long elements = 0;
+			try {
+				while (bboxData.hasNext()) {
+					elements++;
+					sink.process(bboxData.next());
+				}
+				
+				sink.complete();
+				
+			} finally {
+				bboxData.release();
+				datasetReader.complete();
+				tracker.elementsSerialized(elements);
+			}
+			
+			out.flush();
+			out.close();
+			long end = System.currentTimeMillis();
+			log.info("Serialization complete: " + (end - middle) + "ms");
+		} catch(IOException e) {
+			tracker.error(e);
+			throw e;
 		} finally {
-			bboxData.release();
-			datasetReader.complete();
+			tracker.complete();
 		}
-		
-		out.flush();
-		out.close();
-		long end = System.currentTimeMillis();
-		log.info("Serialization complete: " + (end - middle) + "ms");
 	}
 
     /**
