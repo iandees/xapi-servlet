@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.openstreetmap.osmosis.core.OsmosisRuntimeException;
 import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
 import org.openstreetmap.osmosis.core.database.DatabaseLoginCredentials;
 import org.openstreetmap.osmosis.core.database.DatabasePreferences;
@@ -103,6 +104,9 @@ public class XapiServlet extends HttpServlet {
 			long end = System.currentTimeMillis();
 			log.info("Serialization complete: " + (end - middle) + "ms");
 			tracker.complete();
+		} catch(OsmosisRuntimeException e) {
+			tracker.error(e);
+			throw e;
 		} catch(IOException e) {
 			tracker.error(e);
 			throw e;
