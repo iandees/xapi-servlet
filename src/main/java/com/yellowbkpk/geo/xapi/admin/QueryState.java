@@ -6,5 +6,6 @@ public enum QueryState {
 	DATABASE_QUERY,
 	SERIALIZATION,
 	DONE,
-	ERROR;
+	ERROR,
+	KILLED;
 }

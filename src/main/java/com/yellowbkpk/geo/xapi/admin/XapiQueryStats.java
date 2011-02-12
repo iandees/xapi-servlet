@@ -1,13 +1,18 @@
 package com.yellowbkpk.geo.xapi.admin;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
+import org.postgresql.util.MD5Digest;
 
 public class XapiQueryStats {
 
 	private static final int MAX_STATS = 100;
-	private static List<XapiQueryStats> allStats = new ArrayList<XapiQueryStats>(100);
+	private static LinkedList<XapiQueryStats> allStats = new LinkedList<XapiQueryStats>();
+	private static Map<String, XapiQueryStats> activeThreads = new HashMap<String, XapiQueryStats>();
 	
 	private QueryState state;
 	
@@ -21,10 +26,13 @@ public class XapiQueryStats {
 	private Exception exception;
 	private long elementCount;
 	private String remoteHost;
+	private String threadId;
 
 	private XapiQueryStats(Thread requestThread) {
 		this.startTime = System.currentTimeMillis();
 		this.thread = requestThread;
+		this.threadId = Long.toString(this.thread.getId(), 26);
+		XapiQueryStats.activeThreads.put(threadId, this);
 		this.state = QueryState.NOT_STARTED;
 	}
 
@@ -32,6 +40,10 @@ public class XapiQueryStats {
 		XapiQueryStats newStat = new XapiQueryStats(requestThread);
 		allStats.add(newStat);
 		return newStat;
+	}
+	
+	public static synchronized XapiQueryStats getByThreadId(String id) {
+		return activeThreads.get(id);
 	}
 
 	public void receivedUrl(String reqUrl, String remoteHost) {
@@ -54,9 +66,11 @@ public class XapiQueryStats {
 		completionTime = System.currentTimeMillis();
 		state = QueryState.DONE;
 		thread = null;
+		threadId = null;
+		activeThreads.remove(threadId);
 		if(allStats.size() > MAX_STATS) {
-			allStats.remove(allStats.size() - 1);
-			allStats.add(this);
+			allStats.removeLast();
+			allStats.addFirst(this);
 		}
 	}
 	
@@ -65,9 +79,11 @@ public class XapiQueryStats {
 		state = QueryState.ERROR;
 		exception = e;
 		thread = null;
+		threadId = null;
+		activeThreads.remove(threadId);
 		if(allStats.size() > MAX_STATS) {
-			allStats.remove(allStats.size() - 1);
-			allStats.add(this);
+			allStats.removeLast();
+			allStats.addFirst(this);
 		}
 	}
 
@@ -104,13 +120,30 @@ public class XapiQueryStats {
 	}
 
 	public boolean isActive() {
-		return !QueryState.ERROR.equals(state)
-				&& !QueryState.DONE.equals(state)
-				&& !QueryState.NOT_STARTED.equals(state);
+		return thread != null;
 	}
 
 	public long getElementCount() {
 		return elementCount;
+	}
+	
+	public void killThread() {
+		if(isActive()) {
+			thread.interrupt();
+			thread = null;
+			threadId = null;
+			activeThreads.remove(threadId);
+			state = QueryState.KILLED;
+			completionTime = System.currentTimeMillis();
+			if(allStats.size() > MAX_STATS) {
+				allStats.removeLast();
+				allStats.addFirst(this);
+			}
+		}
+	}
+	
+	public String getThreadId() {
+		return threadId;
 	}
 
 }

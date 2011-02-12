@@ -30,4 +30,13 @@
   	<servlet-name>Stats</servlet-name>
   	<url-pattern>/admin/stats</url-pattern>
   </servlet-mapping>
+  
+  <servlet>
+  	<servlet-name>Killer</servlet-name>
+  	<servlet-class>com.yellowbkpk.geo.xapi.admin.ThreadKillServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>Killer</servlet-name>
+  	<url-pattern>/admin/kill</url-pattern>
+  </servlet-mapping>
 </web-app>
