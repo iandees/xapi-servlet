@@ -309,6 +309,12 @@ public class XAPIQueryInfoTest {
         assertDoesNotParse("map?bbox=50.0,10.0,40.0,500.0");
     }
 
+    @Test
+    public void testBboxArea() throws XAPIParseException {
+        XAPIQueryInfo info = XAPIQueryInfo.fromString("way[bbox=-180,-90,1.8e+2,90.0]");
+        Assert.assertEquals(info.getBboxSelectors().get(0).area(), 64800.0);
+    }
+
     private void assertDoesNotParse(String query) {
         boolean gotException = false;
         try {

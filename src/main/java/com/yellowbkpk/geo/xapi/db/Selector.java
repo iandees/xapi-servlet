@@ -72,6 +72,10 @@ public abstract class Selector {
 		public double getBottom() {
 			return bottom;
 		}
+
+		public double area() {
+			return (top - bottom) * (right - left);
+		}
     }
 
     public static class Changeset extends Selector {
