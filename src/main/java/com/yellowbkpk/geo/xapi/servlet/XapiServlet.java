@@ -23,12 +23,14 @@ import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.db.Selector.BoundingBox;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class XapiServlet extends HttpServlet {
 	private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi", "xapi", "xapi", true, false, null);
 	private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
+	private static final double MAX_BBOX_AREA = 10.0;
 
 	private static Logger log = Logger.getLogger("XAPI");
 	
@@ -52,6 +54,22 @@ public class XapiServlet extends HttpServlet {
 			} catch (XAPIParseException e) {
 				tracker.error(e);
 				response.sendError(500, "Could not parse query: " + e.getMessage());
+				return;
+			}
+			
+			if(info.getBboxSelectors().size() + info.getTagSelectors().size() < 1) {
+				tracker.error();
+				response.sendError(500, "Must have at least one selector.");
+				return;
+			}
+			
+			double totalArea = 0;
+			for (BoundingBox bbox : info.getBboxSelectors()) {
+				totalArea += bbox.area();
+			}
+			if(totalArea > MAX_BBOX_AREA) {
+				tracker.error();
+				response.sendError(500, "Maximum bounding box area is " + MAX_BBOX_AREA + " square degrees.");
 				return;
 			}
 			
