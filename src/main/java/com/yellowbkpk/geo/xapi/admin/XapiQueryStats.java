@@ -38,7 +38,7 @@ public class XapiQueryStats {
 
 	public static synchronized XapiQueryStats beginTracking(Thread requestThread) {
 		XapiQueryStats newStat = new XapiQueryStats(requestThread);
-		allStats.add(newStat);
+		allStats.addFirst(newStat);
 		return newStat;
 	}
 	
