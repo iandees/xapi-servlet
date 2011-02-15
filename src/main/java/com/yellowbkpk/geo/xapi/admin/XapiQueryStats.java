@@ -6,11 +6,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.postgresql.util.MD5Digest;
-
 public class XapiQueryStats {
 
-	private static final int MAX_STATS = 100;
+	private static final int MAX_STATS = 150;
 	private static LinkedList<XapiQueryStats> allStats = new LinkedList<XapiQueryStats>();
 	private static Map<String, XapiQueryStats> activeThreads = new HashMap<String, XapiQueryStats>();
 	
@@ -32,13 +30,16 @@ public class XapiQueryStats {
 		this.startTime = System.currentTimeMillis();
 		this.thread = requestThread;
 		this.threadId = Long.toString(this.thread.getId(), 26);
-		XapiQueryStats.activeThreads.put(threadId, this);
 		this.state = QueryState.NOT_STARTED;
+		activeThreads.put(threadId, this);
 	}
 
 	public static synchronized XapiQueryStats beginTracking(Thread requestThread) {
 		XapiQueryStats newStat = new XapiQueryStats(requestThread);
 		allStats.addFirst(newStat);
+		if(allStats.size() > MAX_STATS) {
+			allStats.removeLast();
+		}
 		return newStat;
 	}
 	
@@ -68,10 +69,6 @@ public class XapiQueryStats {
 		thread = null;
 		threadId = null;
 		activeThreads.remove(threadId);
-		if(allStats.size() > MAX_STATS) {
-			allStats.removeLast();
-			allStats.addFirst(this);
-		}
 	}
 	
 	public void error(Exception e) {
@@ -81,10 +78,6 @@ public class XapiQueryStats {
 		thread = null;
 		threadId = null;
 		activeThreads.remove(threadId);
-		if(allStats.size() > MAX_STATS) {
-			allStats.removeLast();
-			allStats.addFirst(this);
-		}
 	}
 
 	public void error() {
@@ -135,10 +128,6 @@ public class XapiQueryStats {
 			activeThreads.remove(threadId);
 			state = QueryState.KILLED;
 			completionTime = System.currentTimeMillis();
-			if(allStats.size() > MAX_STATS) {
-				allStats.removeLast();
-				allStats.addFirst(this);
-			}
 		}
 	}
 	
