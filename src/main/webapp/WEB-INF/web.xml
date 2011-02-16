@@ -23,6 +23,16 @@
   </servlet-mapping>
   
   <servlet>
+    <servlet-name>CapabilitiesServlet</servlet-name>
+    <servlet-class>com.yellowbkpk.geo.xapi.servlet.CapabilitiesServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>CapabilitiesServlet</servlet-name>
+  	<url-pattern>/api/capabilities</url-pattern>
+  	<url-pattern>/api/0.6/capabilities</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
   	<servlet-name>Stats</servlet-name>
   	<servlet-class>com.yellowbkpk.geo.xapi.admin.StatsServlet</servlet-class>
   </servlet>
