@@ -30,7 +30,7 @@ public class StatsServlet extends HttpServlet {
 		writer.append("<th>Request</th>");
 		writer.append("<th>Elements</th>");
 		writer.append("<th>Runtime</th>");
-		writer.append("<th>Action</th>");
+		//writer.append("<th>Action</th>");
 		writer.append("</tr>\n");
 		List<XapiQueryStats> allTrackers = XapiQueryStats.getAllTrackers();
 		for (XapiQueryStats stat : allTrackers) {
@@ -42,7 +42,7 @@ public class StatsServlet extends HttpServlet {
 			if(stat.isActive()) {
 				writer.append("<td>-</td>");
 				writer.append("<td>").append(prettyTime(stat.getStartTime(), now)).append("</td>");
-				writer.append("<td><a href='kill?id=").append(stat.getThreadId()).append("'>Kill</a>");
+				//writer.append("<td><a href='kill?id=").append(stat.getThreadId()).append("'>Kill</a>");
 			} else {
 				writer.append("<td>").append(Long.toString(stat.getElementCount())).append("</td>");
 				writer.append("<td>").append(prettyTime(stat.getStartTime(), stat.getEndTime())).append("</td>");
