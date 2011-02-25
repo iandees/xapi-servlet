@@ -88,7 +88,6 @@ public class XapiServlet extends HttpServlet {
 			
 			// Build up a writer connected to the response output stream
 			response.setContentType("text/xml; charset=utf-8");
-			response.setHeader("Content-Disposition", "attachment; filename=\"xapi.osm\"");
 			
 			OutputStream outputStream = response.getOutputStream();
 			String acceptEncodingHeader = request.getHeader("Accept-Encoding");
