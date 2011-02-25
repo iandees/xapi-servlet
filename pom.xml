@@ -60,6 +60,22 @@
   	  <version>0.36-SNAPSHOT</version>
   	  <type>jar</type>
   	</dependency>
+        <!-- These are optional. -->
+   	<dependency>
+  		<groupId>org.openstreetmap.osmosis</groupId>
+  		<artifactId>pbf</artifactId>
+  		<version>0.36-SNAPSHOT</version>
+  		<type>jar</type>
+  		<scope>runtime</scope>
+  	</dependency>
+   	<dependency>
+  		<groupId>org.openstreetmap.osmosis</groupId>
+  		<artifactId>json</artifactId>
+  		<version>0.36-SNAPSHOT</version>
+  		<type>jar</type>
+  		<scope>runtime</scope>
+  	</dependency>
+        <!-- Above are optional. -->
   	<dependency>
   		<groupId>postgresql</groupId>
   		<artifactId>postgresql</artifactId>
