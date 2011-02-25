@@ -37,6 +37,7 @@ public class ApiServlet extends HttpServlet {
 			// Parse URL
 			String primitiveType;
 			ArrayList<Long> ids = new ArrayList<Long>();
+			Filetype filetype = Filetype.xml;
 			try {
 				StringBuffer urlBuffer = request.getRequestURL();
 				if (request.getQueryString() != null) {
@@ -47,6 +48,12 @@ public class ApiServlet extends HttpServlet {
 				int lastSlash = reqUrl.lastIndexOf('/');
 				int secondSlash = reqUrl.substring(0, lastSlash).lastIndexOf('/');
 				String primitiveIdStr = reqUrl.substring(lastSlash + 1);
+				int lastDot = primitiveIdStr.lastIndexOf(".");
+				if(lastDot > 0) {
+					String filetypeStr = primitiveIdStr.substring(lastDot + 1);
+					filetype = Filetype.valueOf(filetypeStr);
+					primitiveIdStr = primitiveIdStr.substring(0, lastDot);
+				}
 				primitiveType = reqUrl.substring(secondSlash + 1, lastSlash);
 				primitiveIdStr = URLDecoder.decode(primitiveIdStr, "UTF-8");
 				
@@ -60,6 +67,11 @@ public class ApiServlet extends HttpServlet {
 			} catch (NumberFormatException e) {
 				tracker.error(e);
 				response.sendError(500, "Could not parse query: " + e.getMessage());
+				return;
+			}
+			
+			if(!filetype.isSinkInstalled()) {
+				response.sendError(500, "I don't know how to serialize that.");
 				return;
 			}
 			
@@ -84,7 +96,7 @@ public class ApiServlet extends HttpServlet {
 			log.info("Query complete: " + (middle - start) + "ms");
 			
 			// Build up a writer connected to the response output stream
-			response.setContentType("text/xml; charset=utf-8");
+			response.setContentType(filetype.getContentTypeString());
 			
 			OutputStream outputStream = response.getOutputStream();
 			String acceptEncodingHeader = request.getHeader("Accept-Encoding");
@@ -96,7 +108,7 @@ public class ApiServlet extends HttpServlet {
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 			
 			// Serialize to the client
-			Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
+			Sink sink = filetype.getSink(out);
 			
 			long elements = 0;
 			try {

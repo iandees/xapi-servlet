@@ -4,6 +4,7 @@ import com.yellowbkpk.geo.xapi.db.Selector;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo.RequestType;
+import com.yellowbkpk.geo.xapi.servlet.Filetype;
 
 public class XAPIQueryInfoTest {
     @Test
@@ -307,6 +308,20 @@ public class XAPIQueryInfoTest {
         assertDoesNotParse("map?bbox=50.0,500.0,40.0,20.0");
     	// Bottom outside bounds
         assertDoesNotParse("map?bbox=50.0,10.0,40.0,500.0");
+    }
+    
+    @Test
+    public void testFiletype() throws XAPIParseException {
+        XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].json");
+        Assert.assertEquals(info.getFiletype(), Filetype.json);
+        info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].xml");
+        Assert.assertEquals(info.getFiletype(), Filetype.xml);
+        info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].pbf");
+        Assert.assertEquals(info.getFiletype(), Filetype.pbf);
+        info = XAPIQueryInfo.fromString("map.xml?bbox=-91.59988,44.73503,-91.39389,44.86950");
+        Assert.assertEquals(info.getFiletype(), Filetype.xml);
+        info = XAPIQueryInfo.fromString("map.json?bbox=-91.59988,44.73503,-91.39389,44.86950");
+        Assert.assertEquals(info.getFiletype(), Filetype.json);
     }
 
     @Test

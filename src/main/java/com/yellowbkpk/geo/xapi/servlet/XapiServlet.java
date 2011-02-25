@@ -40,6 +40,7 @@ public class XapiServlet extends HttpServlet {
 		try {
 			// Parse URL
 			XAPIQueryInfo info = null;
+			Filetype filetype = Filetype.xml;
 			try {
 				StringBuffer urlBuffer = request.getRequestURL();
 				if (request.getQueryString() != null) {
@@ -51,9 +52,19 @@ public class XapiServlet extends HttpServlet {
 				tracker.receivedUrl(query, request.getRemoteHost());
 				log.info("Query " + query);
 				info = XAPIQueryInfo.fromString(query);
+
+				if (info.getFiletype() != null) {
+					filetype = info.getFiletype();
+				}
+				
 			} catch (XAPIParseException e) {
 				tracker.error(e);
 				response.sendError(500, "Could not parse query: " + e.getMessage());
+				return;
+			}
+
+			if(!filetype.isSinkInstalled()) {
+				response.sendError(500, "I don't know how to serialize that.");
 				return;
 			}
 			
@@ -87,7 +98,7 @@ public class XapiServlet extends HttpServlet {
 			log.info("Query complete: " + (middle - start) + "ms");
 			
 			// Build up a writer connected to the response output stream
-			response.setContentType("text/xml; charset=utf-8");
+			response.setContentType(filetype.getContentTypeString());
 			
 			OutputStream outputStream = response.getOutputStream();
 			String acceptEncodingHeader = request.getHeader("Accept-Encoding");
@@ -99,7 +110,7 @@ public class XapiServlet extends HttpServlet {
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 			
 			// Serialize to the client
-			Sink sink = new org.openstreetmap.osmosis.xml.v0_6.XmlWriter(out);
+			Sink sink = filetype.getSink(out);
 
 			long elements = 0;
 			try {

@@ -1,15 +1,12 @@
 package com.yellowbkpk.geo.xapi.query;
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.postgis.Point;
-
 import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.servlet.Filetype;
 
 public class XAPIQueryInfo {
 	
@@ -18,7 +15,7 @@ public class XAPIQueryInfo {
 		NODE("node"),
 		WAY("way"),
 		RELATION("relation"),
-		MAP("map?");
+		MAP("map");
 		
 		private static Map<String, RequestType> val = new HashMap<String, RequestType>();
 		static {
@@ -41,9 +38,11 @@ public class XAPIQueryInfo {
 	private RequestType type;
 	private List<Selector.BoundingBox> boundingBoxes;
 	private List<Selector> selectors;
+	private Filetype filetype;
 
-	private XAPIQueryInfo(RequestType type, List<Selector> selectors, List<Selector.BoundingBox> bboxSelectors) {
+	private XAPIQueryInfo(RequestType type, Filetype filetype, List<Selector> selectors, List<Selector.BoundingBox> bboxSelectors) {
 		this.type = type;
+		this.filetype = filetype;
 		this.selectors = selectors;
 		this.boundingBoxes = bboxSelectors;
 	}
@@ -54,27 +53,54 @@ public class XAPIQueryInfo {
         List<Selector.BoundingBox> bboxSelectors = new LinkedList<Selector.BoundingBox>();
 
         RequestType type = parseRequestType(state);
-        if (type == RequestType.MAP) {
+        Filetype ftype = Filetype.xml;
+		if (type == RequestType.MAP) {
+        	ftype = parseFiletype(state);
+        	state.expect("?");
             bboxSelectors.add(parseBboxSelector(state));
 
         } else {
-            while (state.hasRemaining()) {
-                List<Selector> sels = parseBracketedSelector(state, type);
-
-                for (Selector sel : sels) {
-                    if (sel instanceof Selector.BoundingBox) {
-                        bboxSelectors.add((Selector.BoundingBox)sel);
-                    } else {
-                        selectors.add(sel);
-                    }
-                }
-            }
+			while (state.hasRemaining()) {
+				// FIXME This peek check seems ugly.
+				String nextChar = state.peek(1);
+				if ("[".equals(nextChar)) {
+					List<Selector> sels = parseBracketedSelector(state, type);
+					for (Selector sel : sels) {
+						if (sel instanceof Selector.BoundingBox) {
+							bboxSelectors.add((Selector.BoundingBox) sel);
+						} else {
+							selectors.add(sel);
+						}
+					}
+				} else if(".".equals(nextChar)) {
+					ftype = parseFiletype(state);
+				} else {
+					throw new XAPIParseException("Unknown text");
+				}
+			}
         }
+        
 
-        return new XAPIQueryInfo(type, selectors, bboxSelectors);
+        return new XAPIQueryInfo(type, ftype, selectors, bboxSelectors);
 	}
 
-    private static class ParseState {
+    private static Filetype parseFiletype(ParseState state) throws XAPIParseException {
+		if(state.canConsume(".")) {
+			if(state.canConsume("xml")) {
+				return Filetype.xml;
+			} else if(state.canConsume("json")) {
+				return Filetype.json;
+			} else if(state.canConsume("pbf")) {
+				return Filetype.pbf;
+			} else {
+				throw new XAPIParseException("Unknown filetype specified.");
+			}
+		} else {
+			return null;
+		}
+	}
+
+	private static class ParseState {
         private StringBuffer buf = null;
 
         ParseState(String s) {
@@ -505,6 +531,10 @@ public class XAPIQueryInfo {
 
 	public List<Selector.BoundingBox> getBboxSelectors() {
 		return boundingBoxes;
+	}
+
+	public Filetype getFiletype() {
+		return filetype;
 	}
 
 }
