@@ -128,6 +128,9 @@ public class XapiServlet extends HttpServlet {
 		} catch(IOException e) {
 			tracker.error(e);
 			throw e;
+		} catch(RuntimeException e) {
+			tracker.error(e);
+			throw e;
 		}
 	}
 
