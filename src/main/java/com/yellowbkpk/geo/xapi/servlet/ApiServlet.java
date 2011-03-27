@@ -76,42 +76,45 @@ public class ApiServlet extends HttpServlet {
 			}
 			
 			// Query DB
-			tracker.startDbQuery();
-			long start = System.currentTimeMillis();
-			ReleasableIterator<EntityContainer> bboxData;
-			PostgreSqlDatasetContext datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
-			if("node".equals(primitiveType)) {
-				bboxData = datasetReader.iterateNodes(ids);
-			} else if("way".equals(primitiveType)) {
-				bboxData = datasetReader.iterateWays(ids);
-			} else if("relation".equals(primitiveType)) {
-				bboxData = datasetReader.iterateRelations(ids);
-			} else {
-				tracker.error();
-				response.sendError(500, "Unsupported operation.");
-				return;
-			}
-			tracker.startSerialization();
-			long middle = System.currentTimeMillis();
-			log.info("Query complete: " + (middle - start) + "ms");
-			
-			// Build up a writer connected to the response output stream
-			response.setContentType(filetype.getContentTypeString());
-			
-			OutputStream outputStream = response.getOutputStream();
-			String acceptEncodingHeader = request.getHeader("Accept-Encoding");
-			if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
-				outputStream = new GZIPOutputStream(outputStream);
-				response.setHeader("Content-Encoding", "gzip");
-			}
-			
-			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
-			
-			// Serialize to the client
-			Sink sink = filetype.getSink(out);
-			
+			ReleasableIterator<EntityContainer> bboxData = null;
+			PostgreSqlDatasetContext datasetReader = null;
+			long middle;
 			long elements = 0;
 			try {
+    			tracker.startDbQuery();
+    			long start = System.currentTimeMillis();
+    			datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+    			
+    			if("node".equals(primitiveType)) {
+    				bboxData = datasetReader.iterateNodes(ids);
+    			} else if("way".equals(primitiveType)) {
+    				bboxData = datasetReader.iterateWays(ids);
+    			} else if("relation".equals(primitiveType)) {
+    				bboxData = datasetReader.iterateRelations(ids);
+    			} else {
+    				tracker.error();
+    				response.sendError(500, "Unsupported operation.");
+    				return;
+    			}
+    			tracker.startSerialization();
+    			middle = System.currentTimeMillis();
+    			log.info(primitiveType + " " + ids + " complete: " + (middle - start) + "ms");
+    			
+    			// Build up a writer connected to the response output stream
+    			response.setContentType(filetype.getContentTypeString());
+    			
+    			OutputStream outputStream = response.getOutputStream();
+    			String acceptEncodingHeader = request.getHeader("Accept-Encoding");
+    			if(acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
+    				outputStream = new GZIPOutputStream(outputStream);
+    				response.setHeader("Content-Encoding", "gzip");
+    			}
+    			
+    			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
+    			
+    			// Serialize to the client
+    			Sink sink = filetype.getSink(out);
+    			
 				while (bboxData.hasNext()) {
 					elements++;
 					sink.process(bboxData.next());
@@ -119,14 +122,14 @@ public class ApiServlet extends HttpServlet {
 				
 				sink.complete();
 				
+				out.flush();
+				out.close();
 			} finally {
 				bboxData.release();
 				datasetReader.complete();
 				tracker.elementsSerialized(elements);
 			}
 			
-			out.flush();
-			out.close();
 			long end = System.currentTimeMillis();
 			log.info("Serialization complete: " + (end - middle) + "ms");
 			tracker.complete();
