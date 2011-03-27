@@ -16,7 +16,7 @@ Installation
     
     `createlang plpgsql xapi`
     
-    `createuser xapi`
+    `createuser xapi` You *do* want the user to be a superuser.
     
     `echo "alter role xapi password 'xapi';" | psql -d xapi`
     
@@ -56,6 +56,8 @@ and `xml` modules.
 
 4. Finally, run `mvn compile war:war` from the xapi-servlet directory to generate a
 deployable servlet war.
+
+ - Note that this will fail if you don't have the JSON or PBF Osmosis JARs installed (You're not missing anything: I don't specify how to do that in this readme). To fix that, comment out the two `dependency` blocks in the `pom.xml` that mention `pbf` or `json`.
 
 Thanks
 ------
