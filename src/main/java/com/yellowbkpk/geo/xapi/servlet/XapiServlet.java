@@ -29,20 +29,21 @@ import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class XapiServlet extends HttpServlet {
 	private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
-	
-    private String host = getServletContext().getInitParameter("xapi.db.host");
-    private String database = getServletContext().getInitParameter("xapi.db.database");
-    private String user = getServletContext().getInitParameter("xapi.db.username");
-    private String password = getServletContext().getInitParameter("xapi.db.password");
-    private DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials(host, database, user, password, true, false, null);
-    
-    private float maxBboxArea = Float.parseFloat(getServletContext().getInitParameter("xapi.max_bbox_area"));
     
 	private static Logger log = Logger.getLogger("XAPI");
 	
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
+	    
+	    String host = getServletContext().getInitParameter("xapi.db.host");
+	    String database = getServletContext().getInitParameter("xapi.db.database");
+	    String user = getServletContext().getInitParameter("xapi.db.username");
+	    String password = getServletContext().getInitParameter("xapi.db.password");
+	    DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials(host, database, user, password, true, false, null);
+	    
+	    float maxBboxArea = Float.parseFloat(getServletContext().getInitParameter("xapi.max_bbox_area"));
+
+	    XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
 		try {
 			// Parse URL
 			XAPIQueryInfo info = null;
