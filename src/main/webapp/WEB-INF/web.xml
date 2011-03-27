@@ -1,10 +1,26 @@
 <web-app xmlns="http://java.sun.com/xml/ns/j2ee" version="2.4"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http:/java.sun.com/dtd/web-app_2_3.dtd">
-  
+
   <servlet>
     <servlet-name>Api</servlet-name>
     <servlet-class>com.yellowbkpk.geo.xapi.servlet.ApiServlet</servlet-class>
+    <init-param>
+      <param-name>xapi.db.host</param-name>
+      <param-value>localhost</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.username</param-name>
+      <param-value>xapi</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.password</param-name>
+      <param-value>xapi</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.database</param-name>
+      <param-value>xapi</param-value>
+    </init-param>
   </servlet>
   <servlet-mapping>
     <servlet-name>Api</servlet-name>
@@ -16,6 +32,26 @@
   <servlet>
     <servlet-name>Xapi</servlet-name>
     <servlet-class>com.yellowbkpk.geo.xapi.servlet.XapiServlet</servlet-class>
+    <init-param>
+      <param-name>xapi.max_bbox_area</param-name>
+      <param-value>10.0</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.host</param-name>
+      <param-value>localhost</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.username</param-name>
+      <param-value>xapi</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.password</param-name>
+      <param-value>xapi</param-value>
+    </init-param>
+    <init-param>
+      <param-name>xapi.db.database</param-name>
+      <param-value>xapi</param-value>
+    </init-param>
   </servlet>
   <servlet-mapping>
     <servlet-name>Xapi</servlet-name>

@@ -28,10 +28,16 @@ import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class XapiServlet extends HttpServlet {
-	private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi", "xapi", "xapi", true, false, null);
 	private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
-	private static final double MAX_BBOX_AREA = 10.0;
-
+	
+    private String host = getServletContext().getInitParameter("xapi.db.host");
+    private String database = getServletContext().getInitParameter("xapi.db.database");
+    private String user = getServletContext().getInitParameter("xapi.db.username");
+    private String password = getServletContext().getInitParameter("xapi.db.password");
+    private DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials(host, database, user, password, true, false, null);
+    
+    private float maxBboxArea = Float.parseFloat(getServletContext().getInitParameter("xapi.max_bbox_area"));
+    
 	private static Logger log = Logger.getLogger("XAPI");
 	
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -78,9 +84,9 @@ public class XapiServlet extends HttpServlet {
 			for (BoundingBox bbox : info.getBboxSelectors()) {
 				totalArea += bbox.area();
 			}
-			if(totalArea > MAX_BBOX_AREA) {
+			if(totalArea > maxBboxArea) {
 				tracker.error();
-				response.sendError(500, "Maximum bounding box area is " + MAX_BBOX_AREA + " square degrees.");
+				response.sendError(500, "Maximum bounding box area is " + maxBboxArea + " square degrees.");
 				return;
 			}
 			

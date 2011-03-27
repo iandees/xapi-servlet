@@ -25,13 +25,19 @@ import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 
 public class ApiServlet extends HttpServlet {
-	private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi", "xapi", "xapi", true, false, null);
 	private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
 
+    private String host = getServletContext().getInitParameter("xapi.db.host");
+    private String database = getServletContext().getInitParameter("xapi.db.database");
+    private String user = getServletContext().getInitParameter("xapi.db.username");
+    private String password = getServletContext().getInitParameter("xapi.db.password");
+    private DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials(host, database, user, password, true, false, null);
+	
 	private static Logger log = Logger.getLogger("API");
 	
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+
 		XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
 		try {
 			// Parse URL
