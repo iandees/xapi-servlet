@@ -69,6 +69,12 @@ public class XapiServlet extends HttpServlet {
 				response.sendError(500, "Could not parse query: " + e.getMessage());
 				return;
 			}
+			
+			if(XapiQueryStats.isQueryAlreadyRunning(tracker)) {
+			    response.sendError(500, "Ignoring a duplicate request from this address. Be patient!");
+			    tracker.error();
+			    return;
+			}
 
 			if(!filetype.isSinkInstalled()) {
 				response.sendError(500, "I don't know how to serialize that.");

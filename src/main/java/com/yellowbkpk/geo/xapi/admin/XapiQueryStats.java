@@ -2,15 +2,20 @@ package com.yellowbkpk.geo.xapi.admin;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class XapiQueryStats {
 
 	private static final int MAX_STATS = 150;
 	private static LinkedList<XapiQueryStats> allStats = new LinkedList<XapiQueryStats>();
 	private static Map<String, XapiQueryStats> activeThreads = new HashMap<String, XapiQueryStats>();
+    private static Map<String, Set<String>> activeQueries = new HashMap<String, Set<String>>();
 	
 	private QueryState state;
 	
@@ -51,6 +56,14 @@ public class XapiQueryStats {
 		this.request = reqUrl;
 		this.remoteHost = remoteHost;
 		this.state = QueryState.CONNECTED;
+		synchronized (activeQueries) {
+		    Set<String> queries = activeQueries.get(remoteHost);
+		    if(queries == null) {
+		        queries = new HashSet<String>();
+		        activeQueries.put(remoteHost, queries);
+		    }
+		    queries.add(reqUrl);
+        }
 	}
 
 	public void startDbQuery() {
@@ -69,6 +82,13 @@ public class XapiQueryStats {
 		thread = null;
 		threadId = null;
 		activeThreads.remove(threadId);
+        synchronized (activeQueries) {
+            Set<String> queries = activeQueries.get(remoteHost);
+            queries.remove(this.request);
+            if(queries.isEmpty()) {
+                activeQueries.remove(remoteHost);
+            }
+        }
 	}
 	
 	public void error(Exception e) {
@@ -78,6 +98,13 @@ public class XapiQueryStats {
 		thread = null;
 		threadId = null;
 		activeThreads.remove(threadId);
+        synchronized (activeQueries) {
+            Set<String> queries = activeQueries.get(remoteHost);
+            queries.remove(this.request);
+            if(queries.isEmpty()) {
+                activeQueries.remove(remoteHost);
+            }
+        }
 	}
 
 	public void error() {
@@ -128,11 +155,29 @@ public class XapiQueryStats {
 			activeThreads.remove(threadId);
 			state = QueryState.KILLED;
 			completionTime = System.currentTimeMillis();
+	        synchronized (activeQueries) {
+	            Set<String> queries = activeQueries.get(remoteHost);
+	            queries.remove(this.request);
+	            if(queries.isEmpty()) {
+	                activeQueries.remove(remoteHost);
+	            }
+	        }
 		}
 	}
 	
 	public String getThreadId() {
 		return threadId;
 	}
+
+    public static synchronized boolean isQueryAlreadyRunning(XapiQueryStats state) {
+        Set<String> queries = activeQueries.get(state.remoteHost);
+
+        boolean alreadyRunning = false;
+        if (queries != null) {
+            alreadyRunning = queries.contains(state.request);
+        }
+
+        return alreadyRunning;
+    }
 
 }
