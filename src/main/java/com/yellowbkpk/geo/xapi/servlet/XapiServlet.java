@@ -56,6 +56,13 @@ public class XapiServlet extends HttpServlet {
 				String reqUrl = urlBuffer.toString();
 				String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
 				query = URLDecoder.decode(query, "UTF-8");
+	            
+	            if(XapiQueryStats.isQueryAlreadyRunning(tracker)) {
+	                response.sendError(500, "Ignoring a duplicate request from this address. Be patient!");
+	                tracker.error();
+	                return;
+	            }
+				
 				tracker.receivedUrl(query, request.getRemoteHost());
 				log.info("Query " + query);
 				info = XAPIQueryInfo.fromString(query);
@@ -68,12 +75,6 @@ public class XapiServlet extends HttpServlet {
 				tracker.error(e);
 				response.sendError(500, "Could not parse query: " + e.getMessage());
 				return;
-			}
-			
-			if(XapiQueryStats.isQueryAlreadyRunning(tracker)) {
-			    response.sendError(500, "Ignoring a duplicate request from this address. Be patient!");
-			    tracker.error();
-			    return;
 			}
 
 			if(!filetype.isSinkInstalled()) {
