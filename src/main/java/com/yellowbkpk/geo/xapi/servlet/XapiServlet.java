@@ -57,13 +57,14 @@ public class XapiServlet extends HttpServlet {
 				String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
 				query = URLDecoder.decode(query, "UTF-8");
 	            
-	            if(XapiQueryStats.isQueryAlreadyRunning(tracker)) {
+	            if(XapiQueryStats.isQueryAlreadyRunning(query, request.getRemoteHost())) {
 	                response.sendError(500, "Ignoring a duplicate request from this address. Be patient!");
+	                tracker.receivedUrl(query, request.getRemoteHost());
 	                tracker.error();
 	                return;
 	            }
 				
-				tracker.receivedUrl(query, request.getRemoteHost());
+	            tracker.receivedUrl(query, request.getRemoteHost());
 				log.info("Query " + query);
 				info = XAPIQueryInfo.fromString(query);
 

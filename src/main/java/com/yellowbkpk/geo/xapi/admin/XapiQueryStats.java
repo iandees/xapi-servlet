@@ -7,10 +7,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
 public class XapiQueryStats {
+
 
 	private static final int MAX_STATS = 150;
 	private static LinkedList<XapiQueryStats> allStats = new LinkedList<XapiQueryStats>();
@@ -169,15 +171,18 @@ public class XapiQueryStats {
 		return threadId;
 	}
 
-    public static synchronized boolean isQueryAlreadyRunning(XapiQueryStats state) {
-        Set<String> queries = activeQueries.get(state.remoteHost);
+    public static boolean isQueryAlreadyRunning(String query, String host) {
+        synchronized (activeQueries) {
+            Set<String> queries = activeQueries.get(host);
 
-        boolean alreadyRunning = false;
-        if (queries != null) {
-            alreadyRunning = queries.contains(state.request);
+            boolean alreadyRunning = false;
+            if (queries != null) {
+                alreadyRunning = queries.contains(query);
+                log.info("Host already running queries: " + queries);
+            }
+
+            return alreadyRunning;
         }
-
-        return alreadyRunning;
     }
 
 }
