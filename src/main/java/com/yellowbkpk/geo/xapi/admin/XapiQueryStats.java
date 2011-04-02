@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 
@@ -178,7 +177,6 @@ public class XapiQueryStats {
             boolean alreadyRunning = false;
             if (queries != null) {
                 alreadyRunning = queries.contains(query);
-                log.info("Host already running queries: " + queries);
             }
 
             return alreadyRunning;
