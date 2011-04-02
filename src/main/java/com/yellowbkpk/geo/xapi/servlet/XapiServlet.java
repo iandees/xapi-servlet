@@ -111,6 +111,7 @@ public class XapiServlet extends HttpServlet {
     	        bboxData = makeRequestIterator(datasetReader, info);
     	        if (bboxData == null) {
     				response.sendError(500, "Unsupported operation.");
+    				tracker.error();
     				return;
     			}
     			tracker.startSerialization();
