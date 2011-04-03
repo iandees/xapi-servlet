@@ -145,6 +145,7 @@ public class XapiServlet extends HttpServlet {
 			} finally {
 				bboxData.release();
 				datasetReader.complete();
+				datasetReader.release();
 				tracker.elementsSerialized(elements);
 			}
 			
