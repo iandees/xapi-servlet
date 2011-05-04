@@ -192,6 +192,28 @@ public class XAPIQueryInfoTest {
     }
 
     @Test
+    public void testBoundingBoxSelectorAfterTagSelector() {
+        try {
+            XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=*][bbox=-91.5,44.7,-91.3,44.8]");
+            Assert.assertEquals(info.getBboxSelectors().size(), 1);
+            Assert.assertEquals(info.getKind(), RequestType.ALL);
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+
+            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 1);
+            Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
+            
+            sel = info.getBboxSelectors().get(0);
+            Assert.assertEquals(sel.getClass(), Selector.BoundingBox.class);
+            Assert.assertEquals(sel.getWhereParam().size(), 1);
+
+        } catch (XAPIParseException e) {
+            Assert.fail("Shouldn't fail parsing amenities with wildcard.", e);
+        }
+    }
+
+    @Test
     public void testFromStringWildcardMultipleKeys() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity|shop=*]");
