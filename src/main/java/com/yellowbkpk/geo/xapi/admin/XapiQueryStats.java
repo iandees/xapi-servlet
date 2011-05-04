@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
-
 public class XapiQueryStats {
 
     private static final int MAX_STATS = 150;
@@ -84,9 +82,11 @@ public class XapiQueryStats {
         activeThreads.remove(threadId);
         synchronized (activeQueries) {
             Set<String> queries = activeQueries.get(remoteHost);
-            queries.remove(this.request);
-            if (queries.isEmpty()) {
-                activeQueries.remove(remoteHost);
+            if (queries != null) {
+                queries.remove(this.request);
+                if (queries.isEmpty()) {
+                    activeQueries.remove(remoteHost);
+                }
             }
         }
     }
@@ -100,9 +100,11 @@ public class XapiQueryStats {
         activeThreads.remove(threadId);
         synchronized (activeQueries) {
             Set<String> queries = activeQueries.get(remoteHost);
-            queries.remove(this.request);
-            if (queries.isEmpty()) {
-                activeQueries.remove(remoteHost);
+            if (queries != null) {
+                queries.remove(this.request);
+                if (queries.isEmpty()) {
+                    activeQueries.remove(remoteHost);
+                }
             }
         }
     }
@@ -157,9 +159,11 @@ public class XapiQueryStats {
             completionTime = System.currentTimeMillis();
             synchronized (activeQueries) {
                 Set<String> queries = activeQueries.get(remoteHost);
-                queries.remove(this.request);
-                if (queries.isEmpty()) {
-                    activeQueries.remove(remoteHost);
+                if (queries != null) {
+                    queries.remove(this.request);
+                    if (queries.isEmpty()) {
+                        activeQueries.remove(remoteHost);
+                    }
                 }
             }
         }
