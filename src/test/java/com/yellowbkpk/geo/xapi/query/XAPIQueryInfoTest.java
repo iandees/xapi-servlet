@@ -66,7 +66,8 @@ public class XAPIQueryInfoTest {
     public void testFromStringByUserID() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("relation[@uid=1]");
-            // tag selectors is a misnomer - it's all selectors except the bbox one
+            // tag selectors is a misnomer - it's all selectors except the bbox
+            // one
             Assert.assertEquals(info.getTagSelectors().size(), 1);
             Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.RELATION);
@@ -85,7 +86,8 @@ public class XAPIQueryInfoTest {
     public void testFromStringByUserName() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("way[@user=TestUser]");
-            // tag selectors is a misnomer - it's all selectors except the bbox one
+            // tag selectors is a misnomer - it's all selectors except the bbox
+            // one
             Assert.assertEquals(info.getTagSelectors().size(), 1);
             Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.WAY);
@@ -104,7 +106,8 @@ public class XAPIQueryInfoTest {
     public void testFromStringByChangesetID() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[@changeset=1]");
-            // tag selectors is a misnomer - it's all selectors except the bbox one
+            // tag selectors is a misnomer - it's all selectors except the bbox
+            // one
             Assert.assertEquals(info.getTagSelectors().size(), 1);
             Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
@@ -211,7 +214,6 @@ public class XAPIQueryInfoTest {
         }
     }
 
-
     @Test
     public void testFromStringMultipleValues() {
         try {
@@ -274,10 +276,12 @@ public class XAPIQueryInfoTest {
         assertDoesParse("*[osmc:symbol=red:white:heart]");
         assertDoesParse("map?bbox=-91.59988,44.73503,-91.39389,44.86950");
 
-        /* here's what the xapi docs have to say about escaping:
-         *
-         * Values within predicates can be escaped by prefixing a backslash character.
-         * The following characters can be escaped in this way: | [ ] * / = ( ) \ and space
+        /*
+         * here's what the xapi docs have to say about escaping:
+         * 
+         * Values within predicates can be escaped by prefixing a backslash
+         * character. The following characters can be escaped in this way: | [ ]
+         * * / = ( ) \ and space
          */
         assertDoesParseTag("*[foo\\|bar=something]", "foo|bar", "something");
         assertDoesParseTag("*[foo\\[bar\\]=something]", "foo[bar]", "something");
@@ -287,29 +291,31 @@ public class XAPIQueryInfoTest {
         assertDoesParseTag("*[foo\\=bar=something]", "foo=bar", "something");
         assertDoesParseTag("*[foo\\(bar\\)=something]", "foo(bar)", "something");
         assertDoesParseTag("*[foo\\\\bar=something]", "foo\\bar", "something");
-        // note: although this doesn't, strictly speaking, need to be escaped, it seems to be
+        // note: although this doesn't, strictly speaking, need to be escaped,
+        // it seems to be
         // part of the previous XAPI implementation's spec.
         assertDoesParseTag("*[foo\\ bar=something]", "foo bar", "something");
-        // check that @s at the beginning can be escaped without being interpreted as an attribute selector
+        // check that @s at the beginning can be escaped without being
+        // interpreted as an attribute selector
         assertDoesParseTag("*[\\@foobar=something]", "@foobar", "something");
     }
 
     @Test
     public void testFromStringValidation() {
-    	// Left greater than right
+        // Left greater than right
         assertDoesNotParse("map?bbox=50.0,10.0,40.0,20.0");
-    	// Bottom greater than top
+        // Bottom greater than top
         assertDoesNotParse("map?bbox=40.0,20.0,50.0,10.0");
-    	// Left outside bounds
+        // Left outside bounds
         assertDoesNotParse("map?bbox=450.0,10.0,40.0,20.0");
-    	// Right outside bounds
+        // Right outside bounds
         assertDoesNotParse("map?bbox=50.0,10.0,450.0,20.0");
-    	// Top outside bounds
+        // Top outside bounds
         assertDoesNotParse("map?bbox=50.0,500.0,40.0,20.0");
-    	// Bottom outside bounds
+        // Bottom outside bounds
         assertDoesNotParse("map?bbox=50.0,10.0,40.0,500.0");
     }
-    
+
     @Test
     public void testFiletype() throws XAPIParseException {
         XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].json");

@@ -24,12 +24,14 @@ import java.util.*;
 
 /**
  * Tests of the XAPI servlet functionality.
- *
- * This pulls the database into the test loop, but there doesn't seem to be any way of mocking it out
- * in any clever way without re-implementing most of postgres' parser frontend.
+ * 
+ * This pulls the database into the test loop, but there doesn't seem to be any
+ * way of mocking it out in any clever way without re-implementing most of
+ * postgres' parser frontend.
  */
 public class XapiServletTest {
-    private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost", "xapi_test", "xapi", "xapi", true, false, null);
+    private static final DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials("localhost",
+            "xapi_test", "xapi", "xapi", true, false, null);
     private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
     private DatabaseContext dbCtx = null;
 
@@ -46,15 +48,13 @@ public class XapiServletTest {
         list.add(node(5, 1, 2.0, 2.0, "shop", "pub"));
         list.add(node(6, 1, 2.0, 2.0, "shop", "supermarket"));
 
-        long way1_nodes[] = {1, 2, 3};
+        long way1_nodes[] = { 1, 2, 3 };
         long way2_nodes[] = {};
         list.add(way(1, 1, way1_nodes, "highway", "residential"));
         list.add(way(2, 1, way2_nodes, "highway", "residential"));
 
-        RelationMember rel1_members[] = {
-                new RelationMember(1, EntityType.Node, "foo"),
-                new RelationMember(1, EntityType.Way, "bar")
-        };
+        RelationMember rel1_members[] = { new RelationMember(1, EntityType.Node, "foo"),
+                new RelationMember(1, EntityType.Way, "bar") };
         list.add(relation(1, 1, rel1_members, "type", "route"));
 
         return list;
@@ -145,7 +145,8 @@ public class XapiServletTest {
         expected.add(new EntityRef(EntityType.Node, 1));
         expected.add(new EntityRef(EntityType.Node, 3));
         expected.add(new EntityRef(EntityType.Node, 4));
-        // note that the way also brings in node#2, even though it's outside the bbox
+        // note that the way also brings in node#2, even though it's outside the
+        // bbox
         expected.add(new EntityRef(EntityType.Way, 1));
         expected.add(new EntityRef(EntityType.Node, 2));
         // and it brings in the relation via node#1.
@@ -261,8 +262,8 @@ public class XapiServletTest {
     // relation has only relation members
 
     /**
-     * Simple tuple-class of entity type and ID to allow the expected results of the tests to
-     * be judged.
+     * Simple tuple-class of entity type and ID to allow the expected results of
+     * the tests to be judged.
      */
     private static class EntityRef {
         private EntityType type;
@@ -283,8 +284,10 @@ public class XapiServletTest {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
 
             EntityRef entityRef = (EntityRef) o;
 
@@ -306,9 +309,11 @@ public class XapiServletTest {
 
     /**
      * Executes a query and compares it to the expected result.
-     *
-     * @param query The XAPI URL query to make.
-     * @param expectedResults Set of entities which are expected to be returned.
+     * 
+     * @param query
+     *            The XAPI URL query to make.
+     * @param expectedResults
+     *            Set of entities which are expected to be returned.
      */
     private void execQuery(String query, Set<EntityRef> expectedResults) {
         XAPIQueryInfo info = null;
@@ -361,16 +366,17 @@ public class XapiServletTest {
         Date timestamp = new Date();
         LinkedList<Tag> constructedTags = new LinkedList<Tag>();
         for (int i = 0; i < tags.length; i += 2) {
-            constructedTags.add(new Tag(tags[i], tags[i+1]));
+            constructedTags.add(new Tag(tags[i], tags[i + 1]));
         }
         Node n = new Node(id, version, timestamp, OsmUser.NONE, 1, constructedTags, lon, lat);
         return new NodeContainer(n);
     }
+
     private WayContainer way(long id, int version, long[] way_nodes, String... tags) {
         Date timestamp = new Date();
         LinkedList<Tag> constructedTags = new LinkedList<Tag>();
         for (int i = 0; i < tags.length; i += 2) {
-            constructedTags.add(new Tag(tags[i], tags[i+1]));
+            constructedTags.add(new Tag(tags[i], tags[i + 1]));
         }
         LinkedList<WayNode> wn = new LinkedList<WayNode>();
         for (long nID : way_nodes) {
@@ -379,11 +385,12 @@ public class XapiServletTest {
         Way w = new Way(id, version, timestamp, OsmUser.NONE, 1, constructedTags, wn);
         return new WayContainer(w);
     }
+
     private RelationContainer relation(long id, int version, RelationMember mems[], String... tags) {
         Date timestamp = new Date();
         LinkedList<Tag> constructedTags = new LinkedList<Tag>();
         for (int i = 0; i < tags.length; i += 2) {
-            constructedTags.add(new Tag(tags[i], tags[i+1]));
+            constructedTags.add(new Tag(tags[i], tags[i + 1]));
         }
         LinkedList<RelationMember> rm = new LinkedList<RelationMember>();
         for (RelationMember m : mems) {
@@ -393,7 +400,8 @@ public class XapiServletTest {
         return new RelationContainer(r);
     }
 
-    // internal function to drop all data to the database (ensure that the tests are run on the same
+    // internal function to drop all data to the database (ensure that the tests
+    // are run on the same
     // data each time.)
     private void truncate() {
         dbCtx = new DatabaseContext(loginCredentials);
@@ -411,7 +419,8 @@ public class XapiServletTest {
         dbCtx = new DatabaseContext(loginCredentials);
 
         // then copy in the sample data
-        PostgreSqlCopyWriter writer = new PostgreSqlCopyWriter(loginCredentials, preferences, NodeLocationStoreType.InMemory);
+        PostgreSqlCopyWriter writer = new PostgreSqlCopyWriter(loginCredentials, preferences,
+                NodeLocationStoreType.InMemory);
         Collection<EntityContainer> ents = dataSample();
         for (EntityContainer ec : ents) {
             writer.process(ec);
