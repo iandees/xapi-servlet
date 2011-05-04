@@ -2,6 +2,7 @@
 package com.yellowbkpk.geo.xapi.db;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -206,10 +207,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     public ReleasableIterator<EntityContainer> iterateBoundingBox(double left, double right, double top, double bottom,
             boolean completeWays) {
         List<Bound> bounds;
+        List<LastUpdateTimestamp> timestamps;
         Point[] bboxPoints;
         Polygon bboxPolygon;
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
@@ -218,6 +220,9 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Build the bounds list.
         bounds = new ArrayList<Bound>();
         bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+        
+        timestamps = new ArrayList<LastUpdateTimestamp>();
+        timestamps.add(new LastUpdateTimestamp(fetchLastUpdate()));
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
@@ -357,9 +362,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, BoundContainer>(new BoundContainerIterator(
                 new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
+        resultSets.add(new UpcastIterator<EntityContainer, LastUpdateContainer>(new LastUpdateContainerIterator(
+                new ReleasableAdaptorForIterator<LastUpdateTimestamp>(timestamps.iterator()))));
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
@@ -369,6 +375,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
+    }
+
+    private Date fetchLastUpdate() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /**
@@ -392,11 +403,13 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     public ReleasableIterator<EntityContainer> iterateSelectedNodes(List<Selector.BoundingBox> bboxSelectors,
             List<Selector> tagSelectors) {
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
         List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
@@ -431,7 +444,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
 
@@ -494,12 +506,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     public ReleasableIterator<EntityContainer> iterateSelectedWays(List<Selector.BoundingBox> bboxSelectors,
             List<Selector> tagSelectors) {
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         ArrayList<Bound> bounds = new ArrayList<Bound>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         String bboxWhereStr = buildBboxWhereClause(bboxSelectors).replaceAll("geom", "linestring");
         List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
@@ -584,7 +598,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, BoundContainer>(new BoundContainerIterator(
                 new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
@@ -599,12 +612,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     public ReleasableIterator<EntityContainer> iterateSelectedRelations(List<Selector.BoundingBox> bboxSelectors,
             List<Selector> tagSelectors) {
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         ArrayList<Bound> bounds = new ArrayList<Bound>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         if (bboxSelectors.size() > 0) {
             Selector.BoundingBox boundingBox = bboxSelectors.get(0);
@@ -644,7 +659,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, BoundContainer>(new BoundContainerIterator(
                 new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
@@ -658,11 +672,13 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             List<Selector> tagSelectors) {
         ArrayList<Bound> bounds = new ArrayList<Bound>();
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         if (bboxSelectors.size() > 0) {
             Selector.BoundingBox boundingBox = bboxSelectors.get(0);
@@ -806,7 +822,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, BoundContainer>(new BoundContainerIterator(
                 new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
@@ -822,11 +837,13 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
     public ReleasableIterator<EntityContainer> iterateNodes(List<Long> ids) {
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
@@ -850,7 +867,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
 
@@ -861,11 +877,13 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
     public ReleasableIterator<EntityContainer> iterateWays(List<Long> ids) {
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
@@ -911,7 +929,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
@@ -937,11 +954,13 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
     public ReleasableIterator<EntityContainer> iterateRelations(List<Long> ids) {
         int rowCount;
-        List<ReleasableIterator<EntityContainer>> resultSets;
+        List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
+        
+        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
@@ -965,7 +984,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
-        resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
 
