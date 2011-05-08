@@ -34,7 +34,7 @@ public class StatsServlet extends HttpServlet {
         writer.println("</script>");
         writer.println("</head><body>");
 
-        writer.println("<h1>All Requests</h1>\n");
+        writer.append("<h1>Last ").append(Integer.toString(XapiQueryStats.MAX_STATS)).println(" Requests</h1>\n");
         writer.println("<table border='1'>");
         writer.println("<tr>");
         writer.println("<th>Timestamp</th>");

@@ -10,7 +10,7 @@ import java.util.Set;
 
 public class XapiQueryStats {
 
-    private static final int MAX_STATS = 150;
+    static final int MAX_STATS = 150;
     private static LinkedList<XapiQueryStats> allStats = new LinkedList<XapiQueryStats>();
     private static Map<String, XapiQueryStats> activeThreads = new HashMap<String, XapiQueryStats>();
     private static Map<String, Set<String>> activeQueries = new HashMap<String, Set<String>>();
