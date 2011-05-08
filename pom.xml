@@ -52,13 +52,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
-			<artifactId>core</artifactId>
-			<version>0.39</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>hstore-jdbc</artifactId>
 			<version>0.39</version>
 			<type>jar</type>
