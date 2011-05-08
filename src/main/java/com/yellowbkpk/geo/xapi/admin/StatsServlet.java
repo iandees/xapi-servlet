@@ -19,36 +19,63 @@ public class StatsServlet extends HttpServlet {
 
         response.setContentType("text/html");
         PrintWriter writer = response.getWriter();
+        
+        writer.println("<html><head>");
+        writer.println("<script type=\"text/javascript\">");
+        writer.println("<!--");
+        writer.println("  function toggle(id) {");
+        writer.println("    var e = document.getElementById(id);");
+        writer.println("    if(e.style.display == 'block')");
+        writer.println("      e.style.display = 'none';");
+        writer.println("    else");
+        writer.println("      e.style.display = 'block';");
+        writer.println("  }");
+        writer.println("//-->");
+        writer.println("</script>");
+        writer.println("</head><body>");
 
-        writer.append("<h1>All Requests</h1>\n");
-        writer.append("<table border='1'>");
-        writer.append("<tr>");
-        writer.append("<th>Timestamp</th>");
-        writer.append("<th>Remote Addr</th>");
-        writer.append("<th>State</th>");
-        writer.append("<th>Request</th>");
-        writer.append("<th>Elements</th>");
-        writer.append("<th>Runtime</th>");
-        // writer.append("<th>Action</th>");
-        writer.append("</tr>\n");
+        writer.println("<h1>All Requests</h1>\n");
+        writer.println("<table border='1'>");
+        writer.println("<tr>");
+        writer.println("<th>Timestamp</th>");
+        writer.println("<th>Remote Addr</th>");
+        writer.println("<th>State</th>");
+        writer.println("<th>Request</th>");
+        writer.println("<th>Elements</th>");
+        writer.println("<th>Runtime</th>");
+        // writer.println("<th>Action</th>");
+        writer.println("</tr>\n");
+        
+        int exNum = 0;
         List<XapiQueryStats> allTrackers = XapiQueryStats.getAllTrackers();
         for (XapiQueryStats stat : allTrackers) {
-            writer.append("<tr>");
-            writer.append("<td>").append(timeFormat.format(stat.getStartTime())).append("</td>");
-            writer.append("<td>").append(stat.getRemoteAddress()).append("</td>");
-            writer.append("<td>").append(stat.getState().toString()).append("</td>");
+            writer.println("<tr>");
+            writer.append("<td>").append(timeFormat.format(stat.getStartTime())).println("</td>");
+            writer.append("<td>").append(stat.getRemoteAddress()).println("</td>");
+            if (stat.hasException()) {
+                writer.append("<td><a href=\"#\" onClick=\"toggle('").append(Integer.toString(exNum)).println("');return false;\">");
+                writer.println(stat.getState().toString());
+                writer.println("</a>");
+                writer.append("<div id='").append(Integer.toString(exNum)).println("' style='display:none;'><pre>");
+                stat.getException().printStackTrace(writer);
+                writer.println("</pre></div>");
+                writer.println("</td>");
+            } else {
+                writer.append("<td>").append(stat.getState().toString()).println("</td>");
+            }
             writer.append("<td>").append(stat.getRequest()).append("</td>");
             if (stat.isActive()) {
-                writer.append("<td>-</td>");
-                writer.append("<td>").append(prettyTime(stat.getStartTime(), now)).append("</td>");
-                // writer.append("<td><a href='kill?id=").append(stat.getThreadId()).append("'>Kill</a>");
+                writer.println("<td>-</td>");
+                writer.append("<td>").append(prettyTime(stat.getStartTime(), now)).println("</td>");
+                // writer.println("<td><a href='kill?id=").append(stat.getThreadId()).append("'>Kill</a>");
             } else {
-                writer.append("<td>").append(Long.toString(stat.getElementCount())).append("</td>");
-                writer.append("<td>").append(prettyTime(stat.getStartTime(), stat.getEndTime())).append("</td>");
+                writer.append("<td>").append(Long.toString(stat.getElementCount())).println("</td>");
+                writer.append("<td>").append(prettyTime(stat.getStartTime(), stat.getEndTime())).println("</td>");
             }
-            writer.append("</tr>\n");
+            writer.println("</tr>\n");
         }
-        writer.append("</table>\n");
+        writer.println("</table>\n");
+        writer.println("</body></html>");
     }
 
     private String prettyTime(long startTime, long endTime) {

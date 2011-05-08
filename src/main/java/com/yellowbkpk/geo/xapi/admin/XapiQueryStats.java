@@ -145,6 +145,10 @@ public class XapiQueryStats {
         return thread != null;
     }
 
+    public boolean hasException() {
+        return exception != null;
+    }
+
     public long getElementCount() {
         return elementCount;
     }
@@ -184,6 +188,10 @@ public class XapiQueryStats {
 
             return alreadyRunning;
         }
+    }
+
+    public Exception getException() {
+        return exception;
     }
 
 }
