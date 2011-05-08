@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 
@@ -142,11 +143,19 @@ public class XapiServlet extends HttpServlet {
 
                 out.flush();
                 out.close();
-            } finally {
-                bboxData.release();
-                datasetReader.complete();
-                datasetReader.release();
                 tracker.elementsSerialized(elements);
+            } catch (Exception e) {
+                tracker.error(e);
+                log.log(Level.WARNING, "Error serializing: ", e);
+                return;
+            } finally {
+                if (bboxData != null) {
+                    bboxData.release();
+                }
+                if (datasetReader != null) {
+                    datasetReader.complete();
+                    datasetReader.release();
+                }
             }
 
             long end = System.currentTimeMillis();
