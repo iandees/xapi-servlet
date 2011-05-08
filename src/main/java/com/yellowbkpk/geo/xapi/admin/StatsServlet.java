@@ -33,7 +33,7 @@ public class StatsServlet extends HttpServlet {
         writer.println("//-->");
         writer.println("</script>");
         writer.println("</head><body>");
-
+        
         writer.append("<h1>Last ").append(Integer.toString(XapiQueryStats.MAX_STATS)).println(" Requests</h1>\n");
         writer.println("<table border='1'>");
         writer.println("<tr>");
@@ -47,9 +47,10 @@ public class StatsServlet extends HttpServlet {
         writer.println("</tr>\n");
         
         int exNum = 0;
+        boolean even = false;
         List<XapiQueryStats> allTrackers = XapiQueryStats.getAllTrackers();
         for (XapiQueryStats stat : allTrackers) {
-            writer.println("<tr>");
+            writer.append("<tr class=\"").append(even ? "even_row" : "odd_row").println("\">");
             writer.append("<td>").append(timeFormat.format(stat.getStartTime())).println("</td>");
             writer.append("<td>").append(stat.getRemoteAddress()).println("</td>");
             if (stat.hasException()) {
@@ -63,7 +64,7 @@ public class StatsServlet extends HttpServlet {
             } else {
                 writer.append("<td>").append(stat.getState().toString()).println("</td>");
             }
-            writer.append("<td>").append(stat.getRequest()).append("</td>");
+            writer.append("<td><tt>").append(stat.getRequest()).println("</tt></td>");
             if (stat.isActive()) {
                 writer.println("<td>-</td>");
                 writer.append("<td>").append(prettyTime(stat.getStartTime(), now)).println("</td>");
@@ -73,6 +74,7 @@ public class StatsServlet extends HttpServlet {
                 writer.append("<td>").append(prettyTime(stat.getStartTime(), stat.getEndTime())).println("</td>");
             }
             writer.println("</tr>\n");
+            even = !even;
         }
         writer.println("</table>\n");
         writer.println("</body></html>");
