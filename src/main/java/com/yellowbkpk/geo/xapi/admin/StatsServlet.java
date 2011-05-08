@@ -61,6 +61,7 @@ public class StatsServlet extends HttpServlet {
                 stat.getException().printStackTrace(writer);
                 writer.println("</pre></div>");
                 writer.println("</td>");
+                exNum++;
             } else {
                 writer.append("<td>").append(stat.getState().toString()).println("</td>");
             }
