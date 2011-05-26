@@ -80,6 +80,7 @@ public class XapiServlet extends HttpServlet {
             }
 
             if (!filetype.isSinkInstalled()) {
+                tracker.error();
                 response.sendError(500, "I don't know how to serialize that.");
                 return;
             }
@@ -111,8 +112,8 @@ public class XapiServlet extends HttpServlet {
                 datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
                 bboxData = makeRequestIterator(datasetReader, info);
                 if (bboxData == null) {
-                    response.sendError(500, "Unsupported operation.");
                     tracker.error();
+                    response.sendError(500, "Unsupported operation.");
                     return;
                 }
                 tracker.startSerialization();
