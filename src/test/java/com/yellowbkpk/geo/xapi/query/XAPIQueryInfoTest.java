@@ -1,6 +1,8 @@
 package com.yellowbkpk.geo.xapi.query;
 
 import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.db.SelectorGroup;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo.RequestType;
@@ -33,7 +35,8 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(info.getKind(), RequestType.NODE);
             Assert.assertEquals(info.getTagSelectors().size(), 1);
 
-            Selector sel = info.getTagSelectors().get(0);
+            SelectorGroup group = (SelectorGroup) info.getTagSelectors().get(0);
+            Selector sel = group.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
@@ -181,7 +184,9 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(info.getKind(), RequestType.ALL);
             Assert.assertEquals(info.getTagSelectors().size(), 1);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector group = info.getTagSelectors().get(0);
+            Assert.assertEquals(group.getClass(), SelectorGroup.class);
+            Selector sel = ((SelectorGroup) group).getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
@@ -200,7 +205,9 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(info.getTagSelectors().size(), 1);
 
             Selector sel = info.getTagSelectors().get(0);
-            Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
+            Assert.assertEquals(sel.getClass(), SelectorGroup.class);
+            Assert.assertEquals(((SelectorGroup) sel).getSelectors().size(), 1);
+            Assert.assertEquals(((SelectorGroup) sel).getSelectors().get(0).getClass(), Selector.Tag.Wildcard.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             
@@ -219,14 +226,18 @@ public class XAPIQueryInfoTest {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity|shop=*]");
             Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
-            Assert.assertEquals(info.getTagSelectors().size(), 2);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getTagSelectors().get(0).getClass(), SelectorGroup.class);
+            SelectorGroup group = (SelectorGroup) info.getTagSelectors().get(0);
+            Assert.assertEquals(group.getSelectors().size(), 2);
+
+            Selector sel = group.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
 
-            Selector sel2 = info.getTagSelectors().get(1);
+            Selector sel2 = group.getSelectors().get(1);
             Assert.assertEquals(sel2.getClass(), Selector.Tag.Wildcard.class);
             Assert.assertEquals(sel2.getWhereParam().size(), 1);
             Assert.assertEquals(sel2.getWhereParam().get(0), "shop");
@@ -242,15 +253,16 @@ public class XAPIQueryInfoTest {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant]");
             Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
-            Assert.assertEquals(info.getTagSelectors().size(), 2);
+            Assert.assertEquals(info.getTagSelectors().size(), 1);
 
-            Selector sel = info.getTagSelectors().get(0);
+            SelectorGroup group = (SelectorGroup) info.getTagSelectors().get(0);
+            Selector sel = group.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             Assert.assertEquals(sel.getWhereParam().get(1), "pub");
 
-            Selector sel2 = info.getTagSelectors().get(1);
+            Selector sel2 = group.getSelectors().get(1);
             Assert.assertEquals(sel2.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel2.getWhereParam().size(), 2);
             Assert.assertEquals(sel2.getWhereParam().get(0), "amenity");
@@ -380,7 +392,9 @@ public class XAPIQueryInfoTest {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString(query);
             Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Selector sel = info.getTagSelectors().get(0);
+            Selector group = info.getTagSelectors().get(0);
+            Assert.assertEquals(group.getClass(), SelectorGroup.class);
+            Selector sel = ((SelectorGroup) group).getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
             Assert.assertEquals(sel.getWhereParam().get(0), key);

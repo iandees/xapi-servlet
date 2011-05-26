@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.db.SelectorGroup;
 import com.yellowbkpk.geo.xapi.servlet.Filetype;
 
 public class XAPIQueryInfo {
@@ -185,7 +186,9 @@ public class XAPIQueryInfo {
                 if (maybeKeys.size() == 1 && maybeKeys.get(0).equals("bbox")) {
                     selectors.add(parseBboxRHS(state));
                 } else if (maybeKeys.size() > 0) {
-                    selectors.addAll(parseTagSelectors(maybeKeys, state));
+                    List<Selector> tagSelectors = parseTagSelectors(maybeKeys, state);
+                    SelectorGroup tagGroup = new SelectorGroup(tagSelectors);
+                    selectors.add(tagGroup);
                 } else {
                     throw new XAPIParseException("Cannot parse tag query with unescaped special characters.");
                 }

@@ -390,7 +390,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     }
 
     public ReleasableIterator<EntityContainer> iterateSelectedNodes(List<Selector.BoundingBox> bboxSelectors,
-            List<Selector> tagSelectors) {
+            List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets;
 
@@ -439,7 +439,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    private List<Object> buildSelectorWhereParameters(List<Selector> tagSelectors) {
+    private List<Object> buildSelectorWhereParameters(List<? extends Selector> tagSelectors) {
         List<Object> obj = new LinkedList<Object>();
         for (Selector selector : tagSelectors) {
             obj.addAll(selector.getWhereParam());
@@ -447,12 +447,12 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj;
     }
 
-    private String buildSelectorWhereClause(List<Selector> tagSelectors) {
+    private String buildSelectorWhereClause(List<? extends Selector> tagSelectors) {
         StringBuilder obj = new StringBuilder();
         boolean first = true;
         for (Selector selector : tagSelectors) {
             if (!first) {
-                obj.append(" OR ");
+                obj.append(" AND ");
             }
             obj.append(selector.getWhereString());
             first = false;
@@ -492,7 +492,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     }
 
     public ReleasableIterator<EntityContainer> iterateSelectedWays(List<Selector.BoundingBox> bboxSelectors,
-            List<Selector> tagSelectors) {
+            List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets;
         ArrayList<Bound> bounds = new ArrayList<Bound>();
@@ -597,7 +597,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     }
 
     public ReleasableIterator<EntityContainer> iterateSelectedRelations(List<Selector.BoundingBox> bboxSelectors,
-            List<Selector> tagSelectors) {
+            List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets;
         ArrayList<Bound> bounds = new ArrayList<Bound>();
@@ -655,7 +655,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     }
 
     public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(List<Selector.BoundingBox> bboxSelectors,
-            List<Selector> tagSelectors) {
+            List<? extends Selector> tagSelectors) {
         ArrayList<Bound> bounds = new ArrayList<Bound>();
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets;
