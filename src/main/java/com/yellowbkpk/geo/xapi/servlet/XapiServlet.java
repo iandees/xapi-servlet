@@ -21,6 +21,7 @@ import org.openstreetmap.osmosis.core.database.DatabasePreferences;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 
+import com.yellowbkpk.geo.xapi.admin.RequestFilter;
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
@@ -76,6 +77,13 @@ public class XapiServlet extends HttpServlet {
             } catch (XAPIParseException e) {
                 tracker.error(e);
                 response.sendError(500, "Could not parse query: " + e.getMessage());
+                return;
+            }
+
+            RequestFilter.AddressFilter filter;
+            if((filter = RequestFilter.findFilterForHost(request.getRemoteAddr())) != null) {
+                tracker.error();
+                response.sendError(500, "Your host is blocked: " + filter.getReason());
                 return;
             }
 
