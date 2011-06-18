@@ -59,6 +59,17 @@ deployable servlet war.
 
  - Note that this will fail if you don't have the JSON or PBF Osmosis JARs installed (You're not missing anything: I don't specify how to do that in this readme). To fix that, comment out the two `dependency` blocks in the `pom.xml` that mention `pbf` or `json`.
 
+Known Issues
+------------
+
+See the [issues list](https://github.com/iandees/xapi-servlet/issues) for all issues, but these limit functionality:
+
+1. [Bug 7](https://github.com/iandees/xapi-servlet/issues/7) - Relation queries ignore any bounding box predicates.
+
+2. [Bug 12](https://github.com/iandees/xapi-servlet/issues/12) - Relations aren't included in the "all elements" query.
+
+3. [Bug 5](https://github.com/iandees/xapi-servlet/issues/5) - The timestamp for the data is not included in the response.
+
 Thanks
 ------
 
