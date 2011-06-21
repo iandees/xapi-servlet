@@ -351,20 +351,6 @@ public class XAPIQueryInfoTest {
     }
 
     @Test
-    public void testFiletype() throws XAPIParseException {
-        XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].json");
-        Assert.assertEquals(info.getFiletype(), Filetype.json);
-        info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].xml");
-        Assert.assertEquals(info.getFiletype(), Filetype.xml);
-        info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant].pbf");
-        Assert.assertEquals(info.getFiletype(), Filetype.pbf);
-        info = XAPIQueryInfo.fromString("map.xml?bbox=-91.59988,44.73503,-91.39389,44.86950");
-        Assert.assertEquals(info.getFiletype(), Filetype.xml);
-        info = XAPIQueryInfo.fromString("map.json?bbox=-91.59988,44.73503,-91.39389,44.86950");
-        Assert.assertEquals(info.getFiletype(), Filetype.json);
-    }
-
-    @Test
     public void testBboxArea() throws XAPIParseException {
         XAPIQueryInfo info = XAPIQueryInfo.fromString("way[bbox=-180,-90,1.8e+2,90.0]");
         Assert.assertEquals(info.getBboxSelectors().get(0).area(), 64800.0);

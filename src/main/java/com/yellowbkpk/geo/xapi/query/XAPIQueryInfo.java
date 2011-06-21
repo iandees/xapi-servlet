@@ -88,10 +88,6 @@ public class XAPIQueryInfo {
         if (state.canConsume(".")) {
             if (state.canConsume("xml")) {
                 return Filetype.xml;
-            } else if (state.canConsume("json")) {
-                return Filetype.json;
-            } else if (state.canConsume("pbf")) {
-                return Filetype.pbf;
             } else {
                 throw new XAPIParseException("Unknown filetype specified.");
             }

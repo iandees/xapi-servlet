@@ -207,7 +207,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     public ReleasableIterator<EntityContainer> iterateBoundingBox(double left, double right, double top, double bottom,
             boolean completeWays) {
         List<Bound> bounds;
-        List<LastUpdateTimestamp> timestamps;
         Point[] bboxPoints;
         Polygon bboxPolygon;
         int rowCount;
@@ -221,9 +220,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         bounds = new ArrayList<Bound>();
         bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
         
-        timestamps = new ArrayList<LastUpdateTimestamp>();
-        timestamps.add(new LastUpdateTimestamp(fetchLastUpdate()));
-
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
         // prevent this. Note that this is not recommended practice according to
@@ -364,8 +360,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Iterating over results.");
         resultSets.add(new UpcastIterator<EntityContainer, BoundContainer>(new BoundContainerIterator(
                 new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
-        resultSets.add(new UpcastIterator<EntityContainer, LastUpdateContainer>(new LastUpdateContainerIterator(
-                new ReleasableAdaptorForIterator<LastUpdateTimestamp>(timestamps.iterator()))));
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
@@ -409,8 +403,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
         List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
         String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
@@ -513,8 +505,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         String bboxWhereStr = buildBboxWhereClause(bboxSelectors).replaceAll("geom", "linestring");
         List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
         String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
@@ -619,8 +609,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         if (bboxSelectors.size() > 0) {
             Selector.BoundingBox boundingBox = bboxSelectors.get(0);
             double right = boundingBox.getRight();
@@ -678,8 +666,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         if (bboxSelectors.size() > 0) {
             Selector.BoundingBox boundingBox = bboxSelectors.get(0);
             double right = boundingBox.getRight();
@@ -843,8 +829,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
         // prevent this. Note that this is not recommended practice according to
@@ -883,8 +867,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
         // prevent this. Note that this is not recommended practice according to
@@ -960,8 +942,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        resultSets.add(new XapiPlanetLastUpdatedIterator(jdbcTemplate));
-
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
         // prevent this. Note that this is not recommended practice according to

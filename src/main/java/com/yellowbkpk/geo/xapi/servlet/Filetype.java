@@ -7,9 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 
 public enum Filetype {
-    xml("text/xml; charset=utf-8", "org.openstreetmap.osmosis.xml.v0_6.XmlWriter"),
-    json("text/json", "org.openstreetmap.osmosis.json.v0_6.JsonWriter"),
-    pbf("application/binary", "crosby.binary.osmosis.OsmosisSerializer");
+    xml("text/xml; charset=utf-8", "org.openstreetmap.osmosis.xml.v0_6.XmlWriter");
 
     private final String contentTypeStr;
     private final String filetypeSinkClassName;

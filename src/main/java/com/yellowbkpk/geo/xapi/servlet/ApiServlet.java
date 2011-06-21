@@ -1,11 +1,14 @@
 package com.yellowbkpk.geo.xapi.servlet;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
@@ -20,13 +23,17 @@ import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
 import org.openstreetmap.osmosis.core.database.DatabaseLoginCredentials;
 import org.openstreetmap.osmosis.core.database.DatabasePreferences;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
-import org.openstreetmap.osmosis.core.task.v0_6.Sink;
+import org.openstreetmap.osmosis.core.time.DateParser;
+import org.openstreetmap.osmosis.core.util.PropertiesPersister;
 
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
+import com.yellowbkpk.geo.xapi.writer.XapiXmlWriter;
 
 public class ApiServlet extends HttpServlet {
     private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
+
+    private static final String LOCAL_STATE_FILE = "state.txt";
 
     private static Logger log = Logger.getLogger("API");
 
@@ -38,6 +45,8 @@ public class ApiServlet extends HttpServlet {
         String password = getServletContext().getInitParameter("xapi.db.password");
         DatabaseLoginCredentials loginCredentials = new DatabaseLoginCredentials(host, database, user, password, true,
                 false, null);
+
+        String workingDirectory = getServletContext().getInitParameter("xapi.workingDirectory");
 
         XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
         try {
@@ -120,7 +129,14 @@ public class ApiServlet extends HttpServlet {
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 
                 // Serialize to the client
-                Sink sink = filetype.getSink(out);
+                XapiXmlWriter sink = new XapiXmlWriter(out);
+
+                try {
+                    sink.setExtra("xapi:planetDate", getDatabaseLastModifiedDate(workingDirectory));
+                    sink.setExtra("xmlns:xapi", "http://jxapi.openstreetmap.org/");
+                } catch (Exception e) {
+                    log.log(Level.WARNING, "Could not read state.txt so skipped setting planet date.", e);
+                }
 
                 while (bboxData.hasNext()) {
                     elements++;
@@ -159,5 +175,12 @@ public class ApiServlet extends HttpServlet {
             tracker.error(e);
             throw e;
         }
+    }
+
+    private String getDatabaseLastModifiedDate(String workingDirectory) {
+        PropertiesPersister localStatePersistor = new PropertiesPersister(new File(workingDirectory, LOCAL_STATE_FILE));
+        Properties properties = localStatePersistor.load();
+        Date timestamp = new DateParser().parse(properties.getProperty("timestamp"));
+        return Long.toString(timestamp.getTime() / 1000L);
     }
 }

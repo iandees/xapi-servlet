@@ -21,6 +21,10 @@
     <param-name>xapi.db.database</param-name>
     <param-value>xapi</param-value>
   </context-param>
+  <context-param>
+    <param-name>xapi.workingDirectory</param-name>
+    <param-value>.</param-value>
+  </context-param>
 
   <servlet>
     <servlet-name>Api</servlet-name>
