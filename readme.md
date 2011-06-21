@@ -57,7 +57,7 @@ and `xml` modules.
 4. Finally, run `mvn compile war:war` from the xapi-servlet directory to generate a
 deployable servlet war.
 
- - Note that this will fail if you don't have the JSON or PBF Osmosis JARs installed (You're not missing anything: I don't specify how to do that in this readme). To fix that, comment out the two `dependency` blocks in the `pom.xml` that mention `pbf` or `json`.
+ - Note that this will fail if you don't have the JSON or PBF Osmosis JARs installed (You're not missing anything: I don't specify how to do that in this readme). To fix that, comment out the two `dependency` blocks in the `pom.xml` that mention `pbf` or `json`. At the moment the PBF and JSON output is removed to make it easier to add the `planetDate` timestamp to the output.
 
 Known Issues
 ------------
@@ -68,7 +68,7 @@ See the [issues list](https://github.com/iandees/xapi-servlet/issues) for all is
 
 2. [Bug 12](https://github.com/iandees/xapi-servlet/issues/12) - Relations aren't included in the "all elements" query.
 
-3. [Bug 5](https://github.com/iandees/xapi-servlet/issues/5) - The timestamp for the data is not included in the response.
+3. PBF and JSON support was removed in f0f003 to make it easier to add the `planetDate` functionality.
 
 Thanks
 ------
