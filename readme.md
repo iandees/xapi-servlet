@@ -29,10 +29,14 @@ Installation
     `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6.sql`
     
     `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_linestring.sql`
+
+    `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_relcollection.sql`
     
     `echo "CREATE INDEX idx_nodes_tags ON nodes USING GIN(tags);" | psql -d xapi`
     
     `echo "CREATE INDEX idx_ways_tags ON ways USING GIN(tags);" | psql -d xapi`
+
+    `echo "CREATE INDEX idx_relations_tags ON relations USING GIN(tags);" | psql -d xapi`
 
 2. Import a planet file (or other piece of OSM data)
    
