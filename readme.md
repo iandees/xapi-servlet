@@ -10,7 +10,15 @@ See the OSM Wiki for more information about XAPI: http://wiki.openstreetmap.org/
 Installation
 ------------
 
+These setup steps assume you're working on a Ubuntu 9.x/10.x installation.
+
+0. Make sure you have the required packages installed:
+
+    `sudo apt-get install postgresql-8.4 postgresql-8.4-postgis`
+
 1. Set up an Osmosis pgsnapshot 0.6 schema in a PostGIS database:
+
+    `sudo su - postgres` *(These commands are meant to be run as user `postgres`)*
 
     `createdb xapi`
     
@@ -30,13 +38,15 @@ Installation
     
     `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_linestring.sql`
 
-    `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_relcollection.sql`
+    `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_relcollection.sql` *(This is experimental and may not be included in your copy of Osmosis yet.)*
     
     `echo "CREATE INDEX idx_nodes_tags ON nodes USING GIN(tags);" | psql -d xapi`
     
     `echo "CREATE INDEX idx_ways_tags ON ways USING GIN(tags);" | psql -d xapi`
 
     `echo "CREATE INDEX idx_relations_tags ON relations USING GIN(tags);" | psql -d xapi`
+
+    `exit` *(Brings us back to original user.)*
 
 2. Import a planet file (or other piece of OSM data)
    
