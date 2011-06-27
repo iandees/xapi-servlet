@@ -14,7 +14,7 @@ These setup steps assume you're working on a Ubuntu 9.x/10.x installation.
 
 0. Make sure you have the required packages installed:
 
-    `sudo apt-get install postgresql-8.4 postgresql-8.4-postgis`
+    `sudo apt-get install postgresql-8.4 postgresql-8.4-postgis postgresql-8.4-hstore-new`
 
 1. Set up an Osmosis pgsnapshot 0.6 schema in a PostGIS database:
 
