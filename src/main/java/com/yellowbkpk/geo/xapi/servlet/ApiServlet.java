@@ -23,6 +23,7 @@ import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
 import org.openstreetmap.osmosis.core.database.DatabaseLoginCredentials;
 import org.openstreetmap.osmosis.core.database.DatabasePreferences;
 import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
+import org.openstreetmap.osmosis.core.time.DateFormatter;
 import org.openstreetmap.osmosis.core.time.DateParser;
 import org.openstreetmap.osmosis.core.util.PropertiesPersister;
 
@@ -132,7 +133,8 @@ public class ApiServlet extends HttpServlet {
                 XapiXmlWriter sink = new XapiXmlWriter(out);
 
                 try {
-                    sink.setExtra("xapi:planetDate", getDatabaseLastModifiedDate(workingDirectory));
+                    Date planetDate = getDatabaseLastModifiedDate(workingDirectory);
+                    sink.setExtra("xapi:planetDate", new DateFormatter().format(planetDate));
                     sink.setExtra("xmlns:xapi", "http://jxapi.openstreetmap.org/");
                 } catch (Exception e) {
                     log.log(Level.WARNING, "Could not read state.txt so skipped setting planet date.", e);
@@ -177,10 +179,9 @@ public class ApiServlet extends HttpServlet {
         }
     }
 
-    private String getDatabaseLastModifiedDate(String workingDirectory) {
+    private Date getDatabaseLastModifiedDate(String workingDirectory) {
         PropertiesPersister localStatePersistor = new PropertiesPersister(new File(workingDirectory, LOCAL_STATE_FILE));
         Properties properties = localStatePersistor.load();
-        Date timestamp = new DateParser().parse(properties.getProperty("timestamp"));
-        return Long.toString(timestamp.getTime() / 1000L);
+        return new DateParser().parse(properties.getProperty("timestamp"));
     }
 }
