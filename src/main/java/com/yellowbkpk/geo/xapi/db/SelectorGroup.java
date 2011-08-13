@@ -5,8 +5,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.yellowbkpk.geo.xapi.db.Selector.BoundingBox;
-
 public class SelectorGroup extends Selector {
     private List<Selector> selectors = new LinkedList<Selector>();
 

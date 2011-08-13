@@ -1,12 +1,11 @@
 package com.yellowbkpk.geo.xapi.query;
 
-import com.yellowbkpk.geo.xapi.db.Selector;
-import com.yellowbkpk.geo.xapi.db.SelectorGroup;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.db.SelectorGroup;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo.RequestType;
-import com.yellowbkpk.geo.xapi.servlet.Filetype;
 
 public class XAPIQueryInfoTest {
     @Test
@@ -212,7 +211,7 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             
             sel = info.getBboxSelectors().get(0);
-            Assert.assertEquals(sel.getClass(), Selector.BoundingBox.class);
+            Assert.assertEquals(sel.getClass(), Selector.Polygon.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
 
         } catch (XAPIParseException e) {

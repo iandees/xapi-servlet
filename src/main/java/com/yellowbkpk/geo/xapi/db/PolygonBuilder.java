@@ -20,9 +20,21 @@ public class PolygonBuilder {
      * @return The Polygon object.
      */
     public static Polygon createPolygon(Point[] points) {
-        Polygon result;
-
-        result = new Polygon(new LinearRing[] { new LinearRing(points) });
+        if(points.length < 3) {
+            throw new IllegalArgumentException("Not enough points to build a polygon for specified argument.");
+        }
+        
+        Point first = points[0];
+        Point last = points[points.length - 1];
+        if(!first.equals(last)) {
+            Point[] p = new Point[points.length + 1];
+            System.arraycopy(points, 0, p, 0, points.length);
+            p[points.length] = p[0];
+            points = p;
+        }
+        
+        LinearRing linearRing = new LinearRing(points);
+        Polygon result = new Polygon(new LinearRing[] { linearRing });
         result.srid = 4326;
 
         return result;

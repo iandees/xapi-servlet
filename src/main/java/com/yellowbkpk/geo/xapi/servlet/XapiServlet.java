@@ -30,7 +30,6 @@ import com.yellowbkpk.geo.xapi.admin.RequestFilter;
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
-import com.yellowbkpk.geo.xapi.db.Selector.BoundingBox;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 import com.yellowbkpk.geo.xapi.writer.XapiXmlWriter;
@@ -110,7 +109,7 @@ public class XapiServlet extends HttpServlet {
             }
 
             double totalArea = 0;
-            for (BoundingBox bbox : info.getBboxSelectors()) {
+            for (Selector.Polygon bbox : info.getBboxSelectors()) {
                 totalArea += bbox.area();
             }
             if (totalArea > maxBboxArea) {
@@ -230,7 +229,7 @@ public class XapiServlet extends HttpServlet {
         } else if (XAPIQueryInfo.RequestType.ALL.equals(info.getKind())) {
             bboxData = datasetReader.iterateSelectedPrimitives(info.getBboxSelectors(), info.getTagSelectors());
         } else if (XAPIQueryInfo.RequestType.MAP.equals(info.getKind())) {
-            Selector.BoundingBox boundingBox = info.getBboxSelectors().get(0);
+            Selector.Polygon boundingBox = info.getBboxSelectors().get(0);
             bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(), boundingBox.getRight(),
                     boundingBox.getTop(), boundingBox.getBottom(), true);
         }

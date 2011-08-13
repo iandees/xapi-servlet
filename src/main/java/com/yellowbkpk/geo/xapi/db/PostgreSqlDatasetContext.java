@@ -394,7 +394,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedNodes(List<Selector.BoundingBox> bboxSelectors,
+    public ReleasableIterator<EntityContainer> iterateSelectedNodes(List<Selector.Polygon> bboxSelectors,
             List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
@@ -469,7 +469,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj.toString();
     }
 
-    private List<Object> buildBboxWhereParameters(List<Selector.BoundingBox> bboxSelectors) {
+    private List<Object> buildBboxWhereParameters(List<Selector.Polygon> bboxSelectors) {
         List<Object> obj = new LinkedList<Object>();
         for (Selector selector : bboxSelectors) {
             obj.addAll(selector.getWhereParam());
@@ -477,7 +477,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj;
     }
 
-    private String buildBboxWhereClause(List<Selector.BoundingBox> bboxSelectors) {
+    private String buildBboxWhereClause(List<Selector.Polygon> bboxSelectors) {
         StringBuilder obj = new StringBuilder();
         boolean first = true;
         for (Selector selector : bboxSelectors) {
@@ -495,7 +495,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj.toString();
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedWays(List<Selector.BoundingBox> bboxSelectors,
+    public ReleasableIterator<EntityContainer> iterateSelectedWays(List<Selector.Polygon> bboxSelectors,
             List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
@@ -514,7 +514,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         objArgs.addAll(tagsWhereObj);
 
         if (bboxSelectors.size() > 0) {
-            Selector.BoundingBox boundingBox = bboxSelectors.get(0);
+            Selector.Polygon boundingBox = bboxSelectors.get(0);
             double right = boundingBox.getRight();
             double left = boundingBox.getLeft();
             double top = boundingBox.getTop();
@@ -599,7 +599,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedRelations(List<Selector.BoundingBox> bboxSelectors,
+    public ReleasableIterator<EntityContainer> iterateSelectedRelations(List<Selector.Polygon> bboxSelectors,
             List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
@@ -610,7 +610,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
         
         if (bboxSelectors.size() > 0) {
-            Selector.BoundingBox boundingBox = bboxSelectors.get(0);
+            Selector.Polygon boundingBox = bboxSelectors.get(0);
             double right = boundingBox.getRight();
             double left = boundingBox.getLeft();
             double top = boundingBox.getTop();
@@ -656,7 +656,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(List<Selector.BoundingBox> bboxSelectors,
+    public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(List<Selector.Polygon> bboxSelectors,
             List<? extends Selector> tagSelectors) {
         ArrayList<Bound> bounds = new ArrayList<Bound>();
         int rowCount;
@@ -667,7 +667,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
         
         if (bboxSelectors.size() > 0) {
-            Selector.BoundingBox boundingBox = bboxSelectors.get(0);
+            Selector.Polygon boundingBox = bboxSelectors.get(0);
             double right = boundingBox.getRight();
             double left = boundingBox.getLeft();
             double top = boundingBox.getTop();

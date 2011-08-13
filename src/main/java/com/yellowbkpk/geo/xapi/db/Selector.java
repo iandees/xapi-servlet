@@ -3,6 +3,7 @@ package com.yellowbkpk.geo.xapi.db;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.postgis.Geometry;
 import org.postgis.PGgeometry;
 import org.postgis.Point;
 
@@ -39,23 +40,45 @@ public abstract class Selector {
     }
 
     public static class Polygon extends Selector {
-        public Polygon(Point[] points) {
-            super(" ST_Intersects(geom, ?)", new PGgeometry(PolygonBuilder.createPolygon(points)));
-        }
-    }
-
-    public static class BoundingBox extends Selector {
         private double left;
         private double right;
-        private double bottom;
         private double top;
+        private double bottom;
+        private double area;
 
-        public BoundingBox(double left, double right, double top, double bottom) {
-            super(" geom && ?", new PGgeometry(PolygonBuilder.buildBoundingPolygon(left, right, top, bottom)));
-            this.left = left;
-            this.right = right;
-            this.bottom = bottom;
-            this.top = top;
+        public Polygon(Point... points) {
+            this(" ST_Intersects(geom, ?)", PolygonBuilder.createPolygon(points));
+        }
+
+        public Polygon(Double left, Double right, Double top, Double bottom) {
+            this(" geom && ?", PolygonBuilder.buildBoundingPolygon(left, right, top, bottom));
+        }
+        
+        private Polygon(String where, Geometry poly) {
+            super(where);
+            left = Double.POSITIVE_INFINITY;
+            right = Double.NEGATIVE_INFINITY;
+            top = Double.NEGATIVE_INFINITY;
+            bottom = Double.POSITIVE_INFINITY;
+            for(int i = 0; i < poly.numPoints(); i++) {
+                Point point = poly.getPoint(i);
+                
+                if (point.x < left)
+                    left = point.x;
+                if (point.x > right)
+                    right = point.x;
+                
+                if (point.y < bottom)
+                    bottom = point.y;
+                if (point.y > top)
+                    top = point.y;
+            }
+            area = (top - bottom) * (right - left);
+            param.add(new PGgeometry(poly));
+        }
+
+        public double area() {
+            return area;
         }
 
         public double getLeft() {
@@ -72,10 +95,6 @@ public abstract class Selector {
 
         public double getBottom() {
             return bottom;
-        }
-
-        public double area() {
-            return (top - bottom) * (right - left);
         }
     }
 

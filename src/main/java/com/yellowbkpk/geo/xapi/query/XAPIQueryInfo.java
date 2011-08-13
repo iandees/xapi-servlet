@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.postgis.Point;
+
 import com.yellowbkpk.geo.xapi.db.Selector;
 import com.yellowbkpk.geo.xapi.db.SelectorGroup;
 import com.yellowbkpk.geo.xapi.servlet.Filetype;
@@ -36,12 +38,12 @@ public class XAPIQueryInfo {
     }
 
     private RequestType type;
-    private List<Selector.BoundingBox> boundingBoxes;
+    private List<Selector.Polygon> boundingBoxes;
     private List<Selector> selectors;
     private Filetype filetype;
 
     private XAPIQueryInfo(RequestType type, Filetype filetype, List<Selector> selectors,
-            List<Selector.BoundingBox> bboxSelectors) {
+            List<Selector.Polygon> bboxSelectors) {
         this.type = type;
         this.filetype = filetype;
         this.selectors = selectors;
@@ -51,14 +53,18 @@ public class XAPIQueryInfo {
     public static XAPIQueryInfo fromString(String str) throws XAPIParseException {
         ParseState state = new ParseState(str);
         List<Selector> selectors = new LinkedList<Selector>();
-        List<Selector.BoundingBox> bboxSelectors = new LinkedList<Selector.BoundingBox>();
+        List<Selector.Polygon> bboxSelectors = new LinkedList<Selector.Polygon>();
 
         RequestType type = parseRequestType(state);
         Filetype ftype = Filetype.xml;
         if (type == RequestType.MAP) {
             ftype = parseFiletype(state);
             state.expect("?");
-            bboxSelectors.add(parseBboxSelector(state));
+            if ("bbox".equals(state.peek(4))) {
+                bboxSelectors.add(parseBboxSelector(state));
+            } else if ("poly".equals(state.peek(4))) {
+                bboxSelectors.add(parsePolygonSelector(state));
+            }
 
         } else {
             while (state.hasRemaining()) {
@@ -67,8 +73,8 @@ public class XAPIQueryInfo {
                 if ("[".equals(nextChar)) {
                     List<Selector> sels = parseBracketedSelector(state, type);
                     for (Selector sel : sels) {
-                        if (sel instanceof Selector.BoundingBox) {
-                            bboxSelectors.add((Selector.BoundingBox) sel);
+                        if (sel instanceof Selector.Polygon) {
+                            bboxSelectors.add((Selector.Polygon) sel);
                         } else {
                             selectors.add(sel);
                         }
@@ -181,6 +187,8 @@ public class XAPIQueryInfo {
             if (state.canConsume("=")) {
                 if (maybeKeys.size() == 1 && maybeKeys.get(0).equals("bbox")) {
                     selectors.add(parseBboxRHS(state));
+                } else if (maybeKeys.size() == 1 && maybeKeys.get(0).equals("poly")) {
+                    selectors.add(parsePolygonRHS(state));
                 } else if (maybeKeys.size() > 0) {
                     List<Selector> tagSelectors = parseTagSelectors(maybeKeys, state);
                     SelectorGroup tagGroup = new SelectorGroup(tagSelectors);
@@ -263,12 +271,12 @@ public class XAPIQueryInfo {
         return selector;
     }
 
-    private static Selector.BoundingBox parseBboxSelector(ParseState state) throws XAPIParseException {
+    private static Selector.Polygon parseBboxSelector(ParseState state) throws XAPIParseException {
         state.expect("bbox=");
         return parseBboxRHS(state);
     }
 
-    private static Selector.BoundingBox parseBboxRHS(ParseState state) throws XAPIParseException {
+    private static Selector.Polygon parseBboxRHS(ParseState state) throws XAPIParseException {
         Double left = parseDouble(state);
         state.expect(",");
         Double bottom = parseDouble(state);
@@ -301,7 +309,7 @@ public class XAPIQueryInfo {
             throw new XAPIParseException("Right is out of range.");
         }
 
-        return new Selector.BoundingBox(left, right, top, bottom);
+        return new Selector.Polygon(left, right, top, bottom);
     }
 
     private static void fillDigits(ParseState state, StringBuffer buf) throws XAPIParseException {
@@ -480,30 +488,68 @@ public class XAPIQueryInfo {
         } while (true);
     }
 
-    /*
-     * private static Selector.Polygon buildPolygonSelector(Tree predicateTree)
-     * { String encoded = predicateTree.getChild(0).getText();
-     * 
-     * Point[] points = decodePolygonString(encoded); return new
-     * Selector.Polygon(points); }
-     * 
-     * private static Point[] decodePolygonString(String encoded) { int i = 0;
-     * char[] charArray = encoded.toCharArray(); List<Point> points = new
-     * LinkedList<Point>();
-     * 
-     * while(i < charArray.length) { char b; int shift = 0; int result = 0;
-     * float lat = 0; float lon = 0; do { b = (char) (charArray[i++] - 63);
-     * result |= (b & 0x1f) << shift; shift += 5; } while(b >= 0x20); float dlat
-     * = (((result & 1) > 0) ? ~(result >> 1) : (result >> 1)); lat += dlat;
-     * 
-     * shift = 0; result = 0; do { b = (char) (charArray[i++] - 63); result |=
-     * (b & 0x1f) << shift; shift += 5; } while (b >= 0x20); float dlng =
-     * (((result & 1) > 0) ? ~(result >> 1) : (result >> 1)); lon += dlng;
-     * 
-     * points.add(new Point(lon * 1e-5, lat * 1e-5)); }
-     * 
-     * return points.toArray(new Point[] {}); }
+    /**
+     * Same as parseUnescaped() but instead of erroring at the end of the buffer
+     * it returns the string that had been parsed up to that point.
      */
+    private static String parseToEndOfSection(ParseState state) throws XAPIParseException {
+        StringBuffer buf = new StringBuffer();
+        do {
+            if(!state.hasRemaining()) {
+                return buf.toString();
+            }
+            String next = state.peek(1);
+            if (next.equals("]")) {
+                if (buf.length() < 1) {
+                    throw new XAPIParseException("Unable to find a string at '" + state.peek(1) + "'.");
+                }
+
+                return buf.toString();
+            }
+            buf.append(next);
+            state.skip(1);
+        } while (true);
+    }
+    
+    private static Selector.Polygon parsePolygonSelector(ParseState state) throws XAPIParseException {
+        state.expect("poly=");
+        return parsePolygonRHS(state);
+    }
+
+    private static Selector.Polygon parsePolygonRHS(ParseState state) throws XAPIParseException {
+        int i = 0;
+        String chars = parseToEndOfSection(state);
+        List<Point> points = new LinkedList<Point>();
+        float lat = 0;
+        float lon = 0;
+
+        while (i < chars.length()) {
+            int b;
+            int shift = 0;
+            int result = 0;
+            do {
+                b = chars.charAt(i++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            float dlat = (((result & 1) > 0) ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = chars.charAt(i++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            float dlng = (((result & 1) > 0) ? ~(result >> 1) : (result >> 1));
+            lon += dlng;
+
+            points.add(new Point(lon * 1e-5, lat * 1e-5));
+        }
+
+        return new Selector.Polygon(points.toArray(new Point[points.size()]));
+    }
 
     public RequestType getKind() {
         return type;
@@ -513,7 +559,7 @@ public class XAPIQueryInfo {
         return selectors;
     }
 
-    public List<Selector.BoundingBox> getBboxSelectors() {
+    public List<Selector.Polygon> getBboxSelectors() {
         return boundingBoxes;
     }
 
