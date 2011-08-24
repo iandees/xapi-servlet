@@ -65,7 +65,15 @@ public class XapiServlet extends HttpServlet {
                     urlBuffer.append("?").append(request.getQueryString());
                 }
                 String reqUrl = urlBuffer.toString();
-                String query = reqUrl.substring(reqUrl.lastIndexOf('/') + 1);
+
+		// this ensures that slashes inside any predicate block aren't counted as
+		// part of the URL, for example when other URLs are used in tag queries.
+		int predicateBegin = reqUrl.indexOf('[');
+		if (predicateBegin < 0) {
+		   predicateBegin = reqUrl.length();
+		}
+
+                String query = reqUrl.substring(reqUrl.lastIndexOf('/', predicateBegin) + 1);
                 query = URLDecoder.decode(query, "UTF-8");
 
                 if (XapiQueryStats.isQueryAlreadyRunning(query, request.getRemoteHost())) {

@@ -331,6 +331,9 @@ public class XAPIQueryInfoTest {
         // check that @s at the beginning can be escaped without being
         // interpreted as an attribute selector
         assertDoesParseTag("*[\\@foobar=something]", "@foobar", "something");
+
+	// check that URLs parse in the tag value
+	assertDoesParseTag("node[source=http:\\/\\/www.ncdc.noaa.gov\\/nexradinv\\/]", "source", "http://www.ncdc.noaa.gov/nexradinv/");
     }
 
     @Test
