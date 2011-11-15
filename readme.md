@@ -34,6 +34,8 @@ These setup steps assume you're working on a Ubuntu 9.x/10.x installation.
     
     `psql -d xapi -f /usr/share/postgresql/8.4/contrib/hstore-new.sql`
     
+    Under postgresql 9.1 install the package postgresql-contrib-9.1 and run the command psql -d xapi -c "CREATE EXTENSION hstore"
+    
     `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6.sql`
     
     `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_linestring.sql`
