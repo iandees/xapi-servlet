@@ -10,11 +10,11 @@ See the OSM Wiki for more information about XAPI: http://wiki.openstreetmap.org/
 Installation
 ------------
 
-These setup steps assume you're working on a Ubuntu 9.x/10.x installation.
+These setup steps assume you're working on a Ubuntu 9.x/10.x/11.x installation.
 
 0. Make sure you have the required packages installed:
 
-    `sudo apt-get install postgresql-8.4 postgresql-8.4-postgis postgresql-8.4-hstore-new`
+    `sudo apt-get install postgresql-9.1 postgresql-9.1-postgis postgresql-contrib-9.1`
 
 1. Set up an Osmosis pgsnapshot 0.6 schema in a PostGIS database:
 
@@ -26,21 +26,17 @@ These setup steps assume you're working on a Ubuntu 9.x/10.x installation.
     
     `createuser xapi` You *do* want the user to be a superuser.
     
-    `echo "alter role xapi password 'xapi';" | psql -d xapi`
+    `psql -d xapi -c "ALTER ROLE xapi PASSWORD 'xapi';"`
     
-    `psql -d xapi -f /usr/share/postgresql/8.4/contrib/postgis.sql`
+    `psql -d xapi -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql`
     
-    `psql -d xapi -f /usr/share/postgresql/8.4/contrib/spatial_ref_sys.sql`
+    `psql -d xapi -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql`
     
-    `psql -d xapi -f /usr/share/postgresql/8.4/contrib/hstore-new.sql`
+    `psql -d xapi -c "CREATE EXTENSION hstore;"` On postgresql 8.4 you need to run the hstore-new.sql file.
+        
+    `psql -d xapi -f ~/osmosis/script/pgsnapshot_schema_0.6.sql`
     
-    Under postgresql 9.1 install the package postgresql-contrib-9.1 and run the command psql -d xapi -c "CREATE EXTENSION hstore"
-    
-    `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6.sql`
-    
-    `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_linestring.sql`
-
-    `psql -d xapi -f ~/osmosis/package/script/pgsnapshot_schema_0.6_relcollection.sql` *(This is experimental and may not be included in your copy of Osmosis yet.)*
+    `psql -d xapi -f ~/osmosis/script/pgsnapshot_schema_0.6_linestring.sql`
     
     `echo "CREATE INDEX idx_nodes_tags ON nodes USING GIN(tags);" | psql -d xapi`
     
@@ -50,11 +46,19 @@ These setup steps assume you're working on a Ubuntu 9.x/10.x installation.
 
     `exit` *(Brings us back to original user.)*
 
-2. Import a planet file (or other piece of OSM data)
-   
-    `bzcat planet-latest.osm.bz2 | bin/osmosis --read-xml file="/dev/stdin" --write-pgsql user="xapi" database="xapi"`
+2. Tune your postgresql settings for a faster import
 
-3. Grab the latest XAPI war and deploy it with a servlet container like Tomcat or Jetty.
+3. Import a planet file (or other piece of OSM data)
+    
+    This can be done with --write-pgsql or --write-pgsql-dump
+    
+    For --write-pgsql:
+    
+    `bzcat planet-latest.osm.bz2 | bin/osmosis --fast-read-xml file=- --log-progress --write-pgsql user="xapi" database="xapi"`
+
+    For `--write-pgsql-dump` you want `enableBboxBuilder=no enableLineStringBuilder=yes`. The `\copy` statements used to load the data are faster.
+  
+4. Grab the latest XAPI war and deploy it with a servlet container like Tomcat or Jetty.
 
 Development
 -----------
