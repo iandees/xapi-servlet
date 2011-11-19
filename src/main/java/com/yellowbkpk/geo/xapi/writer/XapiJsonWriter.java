@@ -4,12 +4,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 
 import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
-import org.openstreetmap.osmosis.xml.common.BaseXmlWriter;
-import org.openstreetmap.osmosis.xml.common.CompressionMethod;
+import org.openstreetmap.osmosis.json.common.BaseJsonWriter;
+import org.openstreetmap.osmosis.json.common.CompressionMethod;
 
-public class XapiXmlWriter extends BaseXmlWriter implements XapiSink {
+public class XapiJsonWriter extends BaseJsonWriter implements XapiSink {
     
-    private XapiOsmXmlWriter osmWriter;
+    private XapiOsmJsonWriter osmWriter;
     
     
     /**
@@ -18,10 +18,10 @@ public class XapiXmlWriter extends BaseXmlWriter implements XapiSink {
      * @param writer
      *            The writer to send all data to.
      */
-    public XapiXmlWriter(BufferedWriter writer) {
+    public XapiJsonWriter(BufferedWriter writer) {
         super(writer);
         
-        osmWriter = new XapiOsmXmlWriter("osm", 0);
+        osmWriter = new XapiOsmJsonWriter("osm", 0);
     }
     
     
@@ -33,10 +33,10 @@ public class XapiXmlWriter extends BaseXmlWriter implements XapiSink {
      * @param compressionMethod
      *            Specifies the compression method to employ.
      */
-    public XapiXmlWriter(File file, CompressionMethod compressionMethod) {
+    public XapiJsonWriter(File file, CompressionMethod compressionMethod) {
         super(file, compressionMethod);
         
-        osmWriter = new XapiOsmXmlWriter("osm", 0);
+        osmWriter = new XapiOsmJsonWriter("osm", 0);
     }
     
     

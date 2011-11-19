@@ -4,14 +4,15 @@ import java.io.BufferedWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import org.openstreetmap.osmosis.core.task.v0_6.Sink;
+import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public enum Filetype {
-    xml("text/xml; charset=utf-8", "org.openstreetmap.osmosis.xml.v0_6.XmlWriter");
+    xml("text/xml; charset=utf-8", "com.yellowbkpk.geo.xapi.writer.XapiXmlWriter"),
+    json("application/json", "com.yellowbkpk.geo.xapi.writer.XapiJsonWriter");
 
     private final String contentTypeStr;
     private final String filetypeSinkClassName;
-    private Constructor<Sink> constructor;
+    private Constructor<XapiSink> constructor;
 
     private Filetype(String contentType, String sinkClass) {
         this.contentTypeStr = contentType;
@@ -22,10 +23,10 @@ public enum Filetype {
         return contentTypeStr;
     }
 
-    public Sink getSink(BufferedWriter writer) {
+    public XapiSink getSink(BufferedWriter writer) {
         try {
             if (isSinkInstalled()) {
-                Sink sink = constructor.newInstance(writer);
+                XapiSink sink = constructor.newInstance(writer);
                 return sink;
             } else {
                 return null;
@@ -45,7 +46,7 @@ public enum Filetype {
 
     public boolean isSinkInstalled() {
         try {
-            Class<Sink> clazz = (Class<Sink>) Class.forName(filetypeSinkClassName);
+            Class<XapiSink> clazz = (Class<XapiSink>) Class.forName(filetypeSinkClassName);
             constructor = clazz.getConstructor(new Class[] { BufferedWriter.class });
             return true;
         } catch (Exception e) {

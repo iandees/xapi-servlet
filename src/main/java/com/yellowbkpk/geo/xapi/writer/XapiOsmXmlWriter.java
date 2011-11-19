@@ -8,11 +8,11 @@ import org.openstreetmap.osmosis.core.OsmosisConstants;
 import org.openstreetmap.osmosis.xml.v0_6.impl.OsmWriter;
 import org.openstreetmap.osmosis.xml.v0_6.impl.XmlConstants;
 
-public class XapiOsmWriter extends OsmWriter {
+public class XapiOsmXmlWriter extends OsmWriter {
 
     private Map<String, String> extras = new HashMap<String, String>();
 
-    public XapiOsmWriter(String elementName, int indentLevel) {
+    public XapiOsmXmlWriter(String elementName, int indentLevel) {
         super(elementName, indentLevel, true);
     }
 

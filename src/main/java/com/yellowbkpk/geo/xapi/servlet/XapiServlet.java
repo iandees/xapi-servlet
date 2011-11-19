@@ -32,7 +32,7 @@ import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
-import com.yellowbkpk.geo.xapi.writer.XapiXmlWriter;
+import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public class XapiServlet extends HttpServlet {
     private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
@@ -158,7 +158,7 @@ public class XapiServlet extends HttpServlet {
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
 
                 // Serialize to the client
-                XapiXmlWriter sink = new XapiXmlWriter(out);
+                XapiSink sink = filetype.getSink(out);
 
                 try {
                     Date planetDate = getDatabaseLastModifiedDate(workingDirectory);
