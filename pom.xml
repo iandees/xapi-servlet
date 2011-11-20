@@ -6,6 +6,7 @@
 	<groupId>com.yellowbkpk.geo</groupId>
 	<artifactId>osmosis-xapi-servlet</artifactId>
 	<version>1.0-SNAPSHOT</version>
+        <packaging>war</packaging>
 	<name>Osmosis XAPI Servlet</name>
 	<description>A servlet that responds to XAPI queries using Osmosis pgsnapshot and other related classes.</description>
 	<dependencies>
@@ -16,69 +17,54 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.postgis</groupId>
-			<artifactId>postgis-jdbc</artifactId>
-			<version>1.3.3</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-jdbc</artifactId>
 			<version>3.0.5.RELEASE</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
+        <dependency>
+            <groupId>postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>8.4-702.jdbc4</version>
+            <type>jar</type>
+            <scope>compile</scope>
+        </dependency>
+		<dependency>
+			<groupId>org.postgis</groupId>
+			<artifactId>postgis-jdbc</artifactId>
+			<version>1.3.3</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>core</artifactId>
-			<version>0.39</version>
-			<type>jar</type>
-			<scope>compile</scope>
+			<version>0.40-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>xml</artifactId>
-			<version>0.39</version>
-			<type>jar</type>
-			<scope>compile</scope>
+			<version>0.40-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>pgsnapshot</artifactId>
-			<version>0.39</version>
-			<type>jar</type>
-			<scope>compile</scope>
+			<version>0.40-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>hstore-jdbc</artifactId>
-			<version>0.39</version>
-			<type>jar</type>
+			<version>0.40-SNAPSHOT</version>
 		</dependency>
+		
 		<!-- These are optional. -->
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
-			<artifactId>pbf</artifactId>
-			<version>0.39</version>
-			<type>jar</type>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>json</artifactId>
-			<version>0.39-SNAPSHOT</version>
+			<version>0.40-SNAPSHOT</version>
 			<type>jar</type>
 			<scope>runtime</scope>
 		</dependency>
 		<!-- Above are optional. -->
-		<dependency>
-			<groupId>postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>8.4-702.jdbc4</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
+		
 		<dependency>
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
