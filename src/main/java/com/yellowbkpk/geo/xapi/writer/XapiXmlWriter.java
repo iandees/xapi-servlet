@@ -2,6 +2,7 @@ package com.yellowbkpk.geo.xapi.writer;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.util.Map;
 
 import org.openstreetmap.osmosis.core.container.v0_6.EntityContainer;
 import org.openstreetmap.osmosis.xml.common.BaseXmlWriter;
@@ -79,5 +80,10 @@ public class XapiXmlWriter extends BaseXmlWriter implements XapiSink {
     
     public void setExtra(String key, String value) {
         osmWriter.setExtra(key, value);
+    }
+
+    @Override
+    public void initialize(Map<String, Object> metaData) {
+
     }
 }

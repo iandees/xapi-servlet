@@ -13,7 +13,7 @@ public class XapiOsmXmlWriter extends OsmWriter {
     private Map<String, String> extras = new HashMap<String, String>();
 
     public XapiOsmXmlWriter(String elementName, int indentLevel) {
-        super(elementName, indentLevel, true);
+        super(elementName, indentLevel, true, false);
     }
 
     public void begin() {
