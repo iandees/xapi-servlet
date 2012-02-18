@@ -275,14 +275,20 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             // The outer query constrains the query to the linestrings
             // inside the bounding box. These aren't indexed but the inner
             // query way bbox constraint will minimise the unnecessary data.
-            rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS" + " SELECT w.* FROM ("
-                    + "SELECT c.id AS id, First(c.version) AS version, First(c.user_id) AS user_id,"
-                    + " First(c.tstamp) AS tstamp, First(c.changeset_id) AS changeset_id, First(c.tags) AS tags,"
-                    + " First(c.nodes) AS nodes, MakeLine(c.geom) AS way_line FROM ("
-                    + "SELECT w.*, n.geom AS geom FROM nodes n" + " INNER JOIN way_nodes wn ON n.id = wn.node_id"
-                    + " INNER JOIN ways w ON wn.way_id = w.id"
-                    + " WHERE (w.bbox && ?) ORDER BY wn.way_id, wn.sequence_id" + ") c " + "GROUP BY c.id" + ") w "
-                    + "WHERE (w.way_line && ?)", new PGgeometry(bboxPolygon), new PGgeometry(bboxPolygon));
+            rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
+                    + " SELECT w.* FROM ("
+                    + "  SELECT c.id AS id, First(c.version) AS version, First(c.user_id) AS user_id,"
+                    + "   First(c.tstamp) AS tstamp, First(c.changeset_id) AS changeset_id, First(c.tags) AS tags,"
+                    + "   First(c.nodes) AS nodes, MakeLine(c.geom) AS way_line FROM ("
+                    + "    SELECT w.*, n.geom AS geom FROM nodes n"
+                    + "    INNER JOIN way_nodes wn ON n.id = wn.node_id"
+                    + "    INNER JOIN ways w ON wn.way_id = w.id"
+                    + "    WHERE (w.bbox && ?) ORDER BY wn.way_id, wn.sequence_id"
+                    + "   ) c "
+                    + "   GROUP BY c.id"
+                    + "  ) w "
+                    + "WHERE (w.way_line && ?)",
+                    new PGgeometry(bboxPolygon), new PGgeometry(bboxPolygon));
 
         } else {
             LOG.finer("Selecting all way ids inside bounding box using already selected nodes.");
@@ -305,12 +311,16 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // table.
         LOG.finer("Selecting all relation ids containing selected nodes or ways.");
         rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
-                + " SELECT r.* FROM relations r" + " INNER JOIN (" + "    SELECT relation_id FROM ("
+                + " SELECT r.* FROM relations r"
+                + " INNER JOIN ("
+                + "    SELECT relation_id FROM ("
                 + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
                 + "        INNER JOIN bbox_nodes n ON rm.member_id = n.id WHERE rm.member_type = 'N' "
-                + "        UNION " + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
+                + "        UNION "
+                + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
                 + "        INNER JOIN bbox_ways w ON rm.member_id = w.id WHERE rm.member_type = 'W'"
-                + "     ) rids GROUP BY relation_id" + ") rids ON r.id = rids.relation_id");
+                + "     ) rids GROUP BY relation_id"
+                + ") rids ON r.id = rids.relation_id");
         LOG.finer(rowCount + " rows affected.");
 
         LOG.finer("Adding a primary key to the temporary relations table.");
@@ -323,12 +333,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // relation table and repeat until no more inclusions occur.
         do {
             LOG.finer("Selecting parent relations of selected relations.");
-            rowCount = jdbcTemplate.update("INSERT INTO bbox_relations " + "SELECT r.* FROM relations r INNER JOIN ("
+            rowCount = jdbcTemplate.update("INSERT INTO bbox_relations "
+                    + "SELECT r.* FROM relations r INNER JOIN ("
                     + "    SELECT rm.relation_id FROM relation_members rm"
                     + "    INNER JOIN bbox_relations br ON rm.member_id = br.id"
                     + "    WHERE rm.member_type = 'R' AND NOT EXISTS ("
                     + "        SELECT * FROM bbox_relations br2 WHERE rm.relation_id = br2.id"
-                    + "    ) GROUP BY rm.relation_id" + ") rids ON r.id = rids.relation_id");
+                    + "    ) GROUP BY rm.relation_id"
+                    + ") rids ON r.id = rids.relation_id");
             LOG.finer(rowCount + " rows affected.");
         } while (rowCount > 0);
 
@@ -343,7 +355,9 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
             jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
                     + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn "
-                    + "WHERE NOT EXISTS (" + "    SELECT * FROM bbox_nodes WHERE id = buwn.id" + ");");
+                    + "WHERE NOT EXISTS ("
+                    + "    SELECT * FROM bbox_nodes WHERE id = buwn.id"
+                    + ");");
             jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
                     + " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
             jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
@@ -505,7 +519,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        String bboxWhereStr = buildBboxWhereClause(bboxSelectors).replaceAll("geom", "linestring");
+        String bboxWhereStr = buildBboxWhereClause(bboxSelectors).replaceAll("geom", "bbox");
         List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
         String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
         List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
@@ -573,8 +587,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_way_nodes (id bigint) ON COMMIT DROP");
         jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
-                + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn " + "WHERE NOT EXISTS ("
-                + "    SELECT * FROM bbox_nodes WHERE id = buwn.id" + ");");
+                + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn "
+                + "WHERE NOT EXISTS ("
+                + "    SELECT * FROM bbox_nodes WHERE id = buwn.id"
+                + ");");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
                 + " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
         jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
@@ -659,7 +675,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(List<Selector.Polygon> bboxSelectors,
             List<? extends Selector> tagSelectors) {
         ArrayList<Bound> bounds = new ArrayList<Bound>();
-        int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
@@ -675,135 +690,29 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
         }
 
-        String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
-        List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
-        String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
-        List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
-        List<Object> objArgs = new LinkedList<Object>();
-        objArgs.addAll(bboxWhereObj);
-        objArgs.addAll(tagsWhereObj);
-
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
 
-        // Select all nodes inside the box into the node temp table.
-        LOG.finer("Selecting all nodes inside bounding box.");
-        StringBuilder sql = new StringBuilder(
-                "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes ");
-        if (bboxWhereObj.size() > 0 || tagSelectors.size() > 0) {
-            sql.append("WHERE ");
-            if (bboxWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(bboxWhereStr);
-                sql.append(")");
-                if (tagSelectors.size() > 0) {
-                    sql.append(" AND ");
-                }
-            }
-            if (tagSelectors.size() > 0) {
-                sql.append("(");
-                sql.append(tagsWhereStr);
-                sql.append(")");
-            }
-        }
-        rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+        String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
+        List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
+        String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
+        List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
 
-        LOG.finer("Adding a primary key to the temporary nodes table.");
-        jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
+        populateNodeTables(bboxWhereStr, bboxWhereObj, tagsWhereStr, tagsWhereObj);
 
-        LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
-        jdbcTemplate.update("ANALYZE bbox_nodes");
+        populateWayTables(bboxWhereStr, bboxWhereObj, tagsWhereStr, tagsWhereObj);
 
-        // Select all ways inside the bounding box into the way temp table.
-        LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
-        // We have full way geometry available so select ways
-        // overlapping the requested bounding box.
-        sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways ");
-        if (bboxWhereObj.size() > 0 || tagSelectors.size() > 0) {
-            sql.append("WHERE ");
-            if (bboxWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(bboxWhereStr.replaceAll("geom", "linestring")); // FIXME
-                sql.append(")");
-                if (tagSelectors.size() > 0) {
-                    sql.append(" AND ");
-                }
-            }
-            if (tagSelectors.size() > 0) {
-                sql.append("(");
-                sql.append(tagsWhereStr);
-                sql.append(")");
-            }
-        }
-        rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+        populateRelationTables(bboxWhereStr, bboxWhereObj, tagsWhereStr, tagsWhereObj);
 
-        LOG.finer(rowCount + " rows affected.");
+        backfillRelationsTables();
 
-        LOG.finer("Adding a primary key to the temporary ways table.");
-        jdbcTemplate.update("ALTER TABLE ONLY bbox_ways ADD CONSTRAINT pk_bbox_ways PRIMARY KEY (id)");
-
-        LOG.finer("Updating query analyzer statistics on the temporary ways table.");
-        jdbcTemplate.update("ANALYZE bbox_ways");
-
-        // Select all relations containing the nodes or ways into the relation
-        // table.
-        LOG.finer("Selecting all relation ids containing selected nodes or ways.");
-        rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
-                + " SELECT r.* FROM relations r" + " INNER JOIN (" + "    SELECT relation_id FROM ("
-                + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
-                + "        INNER JOIN bbox_nodes n ON rm.member_id = n.id WHERE rm.member_type = 'N' "
-                + "        UNION " + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
-                + "        INNER JOIN bbox_ways w ON rm.member_id = w.id WHERE rm.member_type = 'W'"
-                + "     ) rids GROUP BY relation_id" + ") rids ON r.id = rids.relation_id");
-        LOG.finer(rowCount + " rows affected.");
-
-        LOG.finer("Adding a primary key to the temporary relations table.");
-        jdbcTemplate.update("ALTER TABLE ONLY bbox_relations ADD CONSTRAINT pk_bbox_relations PRIMARY KEY (id)");
-
-        LOG.finer("Updating query analyzer statistics on the temporary relations table.");
-        jdbcTemplate.update("ANALYZE bbox_relations");
-
-        // Include all relations containing the current relations into the
-        // relation table and repeat until no more inclusions occur.
-        do {
-            LOG.finer("Selecting parent relations of selected relations.");
-            rowCount = jdbcTemplate.update("INSERT INTO bbox_relations " + "SELECT r.* FROM relations r INNER JOIN ("
-                    + "    SELECT rm.relation_id FROM relation_members rm"
-                    + "    INNER JOIN bbox_relations br ON rm.member_id = br.id"
-                    + "    WHERE rm.member_type = 'R' AND NOT EXISTS ("
-                    + "        SELECT * FROM bbox_relations br2 WHERE rm.relation_id = br2.id"
-                    + "    ) GROUP BY rm.relation_id" + ") rids ON r.id = rids.relation_id");
-            LOG.finer(rowCount + " rows affected.");
-        } while (rowCount > 0);
-
-        LOG.finer("Updating query analyzer statistics on the temporary relations table.");
-        jdbcTemplate.update("ANALYZE bbox_relations");
-
-        // If complete ways is set, select all nodes contained by the ways into
-        // the node temp table.
-        LOG.finer("Selecting all nodes for selected ways.");
-        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_way_nodes (id bigint) ON COMMIT DROP");
-        jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
-        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
-                + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn " + "WHERE NOT EXISTS ("
-                + "    SELECT * FROM bbox_nodes WHERE id = buwn.id" + ");");
-        jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
-                + " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
-        jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
-        rowCount = jdbcTemplate.update("INSERT INTO bbox_nodes "
-                + "SELECT n.* FROM nodes n INNER JOIN bbox_missing_way_nodes bwn ON n.id = bwn.id;");
-        LOG.finer(rowCount + " rows affected.");
-
-        LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
-        jdbcTemplate.update("ANALYZE bbox_nodes");
+        backfillNodesTables();
 
         // Create iterators for the selected records for each of the entity
         // types.
@@ -896,8 +805,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_way_nodes (id bigint) ON COMMIT DROP");
         jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
-                + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn " + "WHERE NOT EXISTS ("
-                + "    SELECT * FROM bbox_nodes WHERE id = buwn.id" + ");");
+                + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn "
+                + "WHERE NOT EXISTS ("
+                + "    SELECT * FROM bbox_nodes WHERE id = buwn.id"
+                + ");");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
                 + " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
         jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
@@ -920,28 +831,13 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    private String buildListSql(List<Long> ids) {
-        StringBuilder idsSql = new StringBuilder("(");
-        Iterator<Long> iterator = ids.iterator();
-        while (iterator.hasNext()) {
-            iterator.next();
-            idsSql.append("?");
-            if (iterator.hasNext()) {
-                idsSql.append(", ");
-            }
-        }
-        idsSql.append(")");
-        return idsSql.toString();
-    }
-
     public ReleasableIterator<EntityContainer> iterateRelations(List<Long> ids) {
-        int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
-        
+
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options
         // prevent this. Note that this is not recommended practice according to
@@ -955,7 +851,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
         LOG.finer("Creating nodes table with single ID.");
         String idsSql = buildListSql(ids);
-        rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
+        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
                 + " SELECT * FROM relations WHERE id IN " + idsSql, ids.toArray());
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
@@ -970,5 +866,165 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
 
+    }
+
+    private String buildListSql(List<Long> ids) {
+        StringBuilder idsSql = new StringBuilder("(");
+        Iterator<Long> iterator = ids.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            idsSql.append("?");
+            if (iterator.hasNext()) {
+                idsSql.append(", ");
+            }
+        }
+        idsSql.append(")");
+        return idsSql.toString();
+    }
+
+    private int populateNodeTables(String bboxWhereStr, List<Object> bboxWhereObj, String tagsWhereStr, List<Object> tagsWhereObj)
+    {
+        // Select all nodes inside the box into the node temp table.
+        LOG.finer("Selecting all nodes inside bounding box.");
+        StringBuilder sql = new StringBuilder(
+                "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes ");
+        if (bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
+            sql.append("WHERE ");
+            if (bboxWhereObj.size() > 0) {
+                sql.append("(");
+                sql.append(bboxWhereStr);
+                sql.append(")");
+                if (tagsWhereObj.size() > 0) {
+                    sql.append(" AND ");
+                }
+            }
+            if (tagsWhereObj.size() > 0) {
+                sql.append("(");
+                sql.append(tagsWhereStr);
+                sql.append(")");
+            }
+        }
+        List<Object> objArgs = new ArrayList<Object>();
+        objArgs.addAll(bboxWhereObj);
+        objArgs.addAll(tagsWhereObj);
+        int rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+
+        LOG.finer("Adding a primary key to the temporary nodes table.");
+        jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
+
+        LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
+        jdbcTemplate.update("ANALYZE bbox_nodes");
+
+        return rowCount;
+    }
+
+    private int populateWayTables(String bboxWhereStr, List<Object> bboxWhereObj, String tagsWhereStr, List<Object> tagsWhereObj)
+    {
+        // Select all ways inside the bounding box into the way temp table.
+        LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
+        // We have full way geometry available so select ways
+        // overlapping the requested bounding box.
+        StringBuilder sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways ");
+        if (bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
+            sql.append("WHERE ");
+            if (bboxWhereObj.size() > 0) {
+                sql.append("(");
+                sql.append(bboxWhereStr.replaceAll("geom", "bbox")); // FIXME
+                sql.append(")");
+                if (tagsWhereObj.size() > 0) {
+                    sql.append(" AND ");
+                }
+            }
+            if (tagsWhereObj.size() > 0) {
+                sql.append("(");
+                sql.append(tagsWhereStr);
+                sql.append(")");
+            }
+        }
+        List<Object> objArgs = new ArrayList<Object>();
+        objArgs.addAll(bboxWhereObj);
+        objArgs.addAll(tagsWhereObj);
+
+        int rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+
+        LOG.finer(rowCount + " rows affected.");
+
+        LOG.finer("Adding a primary key to the temporary ways table.");
+        jdbcTemplate.update("ALTER TABLE ONLY bbox_ways ADD CONSTRAINT pk_bbox_ways PRIMARY KEY (id)");
+
+        LOG.finer("Updating query analyzer statistics on the temporary ways table.");
+        jdbcTemplate.update("ANALYZE bbox_ways");
+
+        return rowCount;
+    }
+
+    private int populateRelationTables(String bboxWhereStr, List<Object> bboxWhereObj, String tagsWhereStr,
+            List<Object> tagsWhereObj) {
+        // Select all relations containing the nodes or ways into the relation
+        // table.
+        LOG.finer("Selecting all relation ids containing selected nodes or ways.");
+        int rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
+                + " SELECT r.* FROM relations r"
+                + " INNER JOIN ("
+                + "    SELECT relation_id FROM ("
+                + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
+                + "        INNER JOIN bbox_nodes n ON rm.member_id = n.id WHERE rm.member_type = 'N' "
+                + "        UNION "
+                + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
+                + "        INNER JOIN bbox_ways w ON rm.member_id = w.id WHERE rm.member_type = 'W'"
+                + "     ) rids GROUP BY relation_id"
+                + ") rids ON r.id = rids.relation_id");
+        LOG.finer(rowCount + " rows affected.");
+
+        LOG.finer("Adding a primary key to the temporary relations table.");
+        jdbcTemplate.update("ALTER TABLE ONLY bbox_relations ADD CONSTRAINT pk_bbox_relations PRIMARY KEY (id)");
+
+        LOG.finer("Updating query analyzer statistics on the temporary relations table.");
+        jdbcTemplate.update("ANALYZE bbox_relations");
+
+        return rowCount;
+    }
+
+    private void backfillNodesTables() {
+        // If complete ways is set, select all nodes contained by the ways into
+        // the node temp table.
+        LOG.finer("Selecting all nodes for selected ways.");
+        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_way_nodes (id bigint) ON COMMIT DROP");
+        jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
+        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
+                + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn "
+                + "WHERE NOT EXISTS ("
+                + "    SELECT * FROM bbox_nodes WHERE id = buwn.id"
+                + ");");
+        jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
+                + " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
+        jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
+        int rowCount = jdbcTemplate.update("INSERT INTO bbox_nodes "
+                + "SELECT n.* FROM nodes n INNER JOIN bbox_missing_way_nodes bwn ON n.id = bwn.id;");
+        LOG.finer(rowCount + " rows affected.");
+
+        LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
+        jdbcTemplate.update("ANALYZE bbox_nodes");
+    }
+
+    private void backfillRelationsTables() {
+        int rowCount;
+        // Include all relations containing the current relations into the
+        // relation table and repeat until no more inclusions occur.
+        do {
+            LOG.finer("Selecting parent relations of selected relations.");
+            rowCount = jdbcTemplate.update("INSERT INTO bbox_relations "
+                    + "SELECT r.* FROM relations r INNER JOIN ("
+                    + "    SELECT rm.relation_id FROM relation_members rm"
+                    + "    INNER JOIN bbox_relations br ON rm.member_id = br.id"
+                    + "    WHERE rm.member_type = 'R' AND NOT EXISTS ("
+                    + "        SELECT * FROM bbox_relations br2 WHERE rm.relation_id = br2.id"
+                    + "    ) GROUP BY rm.relation_id"
+                    + ") rids ON r.id = rids.relation_id");
+            LOG.finer(rowCount + " rows affected.");
+        } while (rowCount > 0);
+
+        LOG.finer("Updating query analyzer statistics on the temporary relations table.");
+        jdbcTemplate.update("ANALYZE bbox_relations");
     }
 }
