@@ -219,14 +219,12 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Build the bounds list.
         bounds = new ArrayList<Bound>();
         bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
-        
+
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -426,12 +424,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         objArgs.addAll(tagsWhereObj);
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -537,12 +533,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -640,12 +634,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         objArgs.addAll(tagsWhereObj);
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -737,14 +729,12 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         if (!initialized) {
             initialize();
         }
-        
+
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -775,14 +765,12 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         if (!initialized) {
             initialize();
         }
-        
+
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -839,12 +827,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
-        // these options
-        // prevent this. Note that this is not recommended practice according to
-        // documentation
-        // but fixing this would require modifying the table statistics
-        // gathering
-        // configuration to produce better plans.
+        // these options prevent this. Note that this is not recommended
+        // practice according to documentation but fixing this would require
+        // modifying the table statistics gathering configuration to produce
+        // better plans.
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
