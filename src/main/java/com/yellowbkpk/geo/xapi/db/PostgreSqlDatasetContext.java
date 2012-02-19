@@ -910,12 +910,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
         // We have full way geometry available so select ways
         // overlapping the requested bounding box.
-        StringBuilder sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways ");
+        StringBuilder sql = new StringBuilder();
         if (bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
-            sql.append("WHERE ");
             if (bboxWhereObj.size() > 0) {
                 sql.append("(");
-                sql.append(bboxWhereStr.replaceAll("geom", "bbox")); // FIXME
+                sql.append(bboxWhereStr); // FIXME
                 sql.append(")");
                 if (tagsWhereObj.size() > 0) {
                     sql.append(" AND ");
@@ -931,8 +930,55 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         objArgs.addAll(bboxWhereObj);
         objArgs.addAll(tagsWhereObj);
 
-        int rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+        int rowCount;
+        // Select all ways inside the bounding box into the way temp table.
+        if (capabilityChecker.isWayLinestringSupported()) {
+            LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
+            // We have full way geometry available so select ways
+            // overlapping the requested bounding box.
+            rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
+                    + " SELECT * FROM ways WHERE " + sql.toString().replace("geom", "linestring"), objArgs.toArray());
 
+        } else if (capabilityChecker.isWayBboxSupported()) {
+            LOG.finer("Selecting all ways inside bounding box using dynamically built"
+                    + " way linestring with way bbox indexing.");
+            
+            List<Object> args = new ArrayList<Object>();
+            args.addAll(objArgs);
+            args.addAll(objArgs);
+            
+            // The inner query selects the way id and node coordinates for all
+            // ways constrained by the way bounding box which is indexed. The
+            // middle query converts the way node coordinates into linestrings.
+            // The outer query constrains the query to the linestrings inside
+            // the bounding box. These aren't indexed but the inner query way
+            // bbox constraint will minimise the unnecessary data.
+            rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
+                    + " SELECT w.* FROM ("
+                    + "  SELECT c.id AS id, First(c.version) AS version, First(c.user_id) AS user_id,"
+                    + "   First(c.tstamp) AS tstamp, First(c.changeset_id) AS changeset_id, First(c.tags) AS tags,"
+                    + "   First(c.nodes) AS nodes, MakeLine(c.geom) AS way_line FROM ("
+                    + "    SELECT w.*, n.geom AS geom FROM nodes n"
+                    + "    INNER JOIN way_nodes wn ON n.id = wn.node_id"
+                    + "    INNER JOIN ways w ON wn.way_id = w.id"
+                    + "    WHERE (" + sql.toString().replace("tags", "w.tags").replace("bbox", "w.bbox") + ") ORDER BY wn.way_id, wn.sequence_id"
+                    + "   ) c "
+                    + "   GROUP BY c.id"
+                    + "  ) w "
+                    + "WHERE (" + sql.toString().replace("tags", "w.tags").replace("bbox", "w.way_line") + ")",
+                    args.toArray());
+
+        } else {
+            LOG.finer("Selecting all way ids inside bounding box using already selected nodes.");
+            // No way bbox support is available so select ways containing
+            // the selected nodes.
+            rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
+                    + " SELECT w.* FROM ways w"
+                    + " INNER JOIN ("
+                    + " SELECT wn.way_id FROM way_nodes wn"
+                    + " INNER JOIN bbox_nodes n ON wn.node_id = n.id GROUP BY wn.way_id"
+                    + ") wids ON w.id = wids.way_id");
+        }
         LOG.finer(rowCount + " rows affected.");
 
         LOG.finer("Adding a primary key to the temporary ways table.");
