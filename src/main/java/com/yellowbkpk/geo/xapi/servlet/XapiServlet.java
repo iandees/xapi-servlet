@@ -165,7 +165,7 @@ public class XapiServlet extends HttpServlet {
                     sink.setExtra("xapi:planetDate", new DateFormatter().format(planetDate));
                     sink.setExtra("xmlns:xapi", "http://jxapi.openstreetmap.org/");
                 } catch (Exception e) {
-                    log.log(Level.WARNING, "Could not read state.txt so skipped setting planet date.", e);
+                    log.log(Level.WARNING, "Could not read state.txt so skipped setting planet date.");
                 }
 
                 while (bboxData.hasNext()) {
