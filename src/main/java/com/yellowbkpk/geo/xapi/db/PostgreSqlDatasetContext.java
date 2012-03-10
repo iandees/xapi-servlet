@@ -849,7 +849,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     {
         // Select all nodes inside the box into the node temp table.
         LOG.finer("Selecting all nodes inside bounding box.");
-        String sql = "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes " + whereStr;
+        String sql = "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes WHERE " + whereStr;
         int rowCount = jdbcTemplate.update(sql.toString(), whereObj.toArray());
 
         LOG.finer("Adding a primary key to the temporary nodes table.");
@@ -940,7 +940,9 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 + "        SELECT rm.relation_id AS relation_id FROM relation_members rm"
                 + "        INNER JOIN bbox_ways w ON rm.member_id = w.id WHERE rm.member_type = 'W'"
                 + "     ) rids GROUP BY relation_id"
-                + ") rids ON r.id = rids.relation_id");
+                + ") rids ON r.id = rids.relation_id "
+                + "UNION "
+                + "SELECT * FROM relations WHERE " + whereStr, whereObj.toArray());
         LOG.finer(rowCount + " rows affected.");
 
         LOG.finer("Adding a primary key to the temporary relations table.");
