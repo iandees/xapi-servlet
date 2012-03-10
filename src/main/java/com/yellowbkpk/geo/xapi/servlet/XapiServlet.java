@@ -52,7 +52,7 @@ public class XapiServlet extends HttpServlet {
                 false, null);
 
         String workingDirectory = getServletContext().getInitParameter("xapi.workingDirectory");
-
+        String corsHeaderValue = getServletContext().getInitParameter("xapi.corsHeader");
         float maxBboxArea = Float.parseFloat(getServletContext().getInitParameter("xapi.max_bbox_area"));
 
         XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
@@ -156,6 +156,10 @@ public class XapiServlet extends HttpServlet {
                 if (acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
                     outputStream = new GZIPOutputStream(outputStream);
                     response.setHeader("Content-Encoding", "gzip");
+                }
+
+                if (corsHeaderValue != null) {
+                    response.setHeader("Access-Control-Allow-Origin", corsHeaderValue);
                 }
 
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));

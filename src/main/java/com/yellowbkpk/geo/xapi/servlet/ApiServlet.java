@@ -49,6 +49,8 @@ public class ApiServlet extends HttpServlet {
 
         String workingDirectory = getServletContext().getInitParameter("xapi.workingDirectory");
 
+        String corsHeaderValue = getServletContext().getInitParameter("xapi.corsHeader");
+
         XapiQueryStats tracker = XapiQueryStats.beginTracking(Thread.currentThread());
         try {
             // Parse URL
@@ -125,6 +127,10 @@ public class ApiServlet extends HttpServlet {
                 if (acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
                     outputStream = new GZIPOutputStream(outputStream);
                     response.setHeader("Content-Encoding", "gzip");
+                }
+
+                if (corsHeaderValue != null) {
+                    response.setHeader("Access-Control-Allow-Origin", corsHeaderValue);
                 }
 
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
