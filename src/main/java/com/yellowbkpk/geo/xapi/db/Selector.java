@@ -112,7 +112,7 @@ public abstract class Selector {
 
     public static class User extends Selector {
         public User(String name) {
-            super("user_name = ?", name);
+            super(" user_id = (SELECT id FROM users WHERE name=? LIMIT 1)", name);
         }
     }
 

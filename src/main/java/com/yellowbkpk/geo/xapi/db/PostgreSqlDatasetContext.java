@@ -541,7 +541,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
         // We have full way geometry available so select ways
         // overlapping the requested bounding box.
-        String sql = "CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways "
+        String sql = "CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways WHERE "
             + whereStr;
 
         rowCount = jdbcTemplate.update(sql, whereObj.toArray());
