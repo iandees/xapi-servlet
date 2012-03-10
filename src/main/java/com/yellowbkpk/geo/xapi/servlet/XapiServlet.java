@@ -30,6 +30,7 @@ import com.yellowbkpk.geo.xapi.admin.RequestFilter;
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
+import com.yellowbkpk.geo.xapi.db.Selector.Polygon;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
@@ -110,15 +111,17 @@ public class XapiServlet extends HttpServlet {
                 return;
             }
 
-            if (info.getBboxSelectors().size() + info.getTagSelectors().size() < 1) {
+            if (info.getSelectors().size() < 1) {
                 tracker.error();
                 response.sendError(500, "Must have at least one selector.");
                 return;
             }
 
             double totalArea = 0;
-            for (Selector.Polygon bbox : info.getBboxSelectors()) {
-                totalArea += bbox.area();
+            for (Selector bbox : info.getSelectors()) {
+                if (bbox instanceof Selector.Polygon) {
+                    totalArea += ((Selector.Polygon) bbox).area();
+                }
             }
             if (totalArea > maxBboxArea) {
                 tracker.error();
@@ -229,17 +232,19 @@ public class XapiServlet extends HttpServlet {
         ReleasableIterator<EntityContainer> bboxData = null;
 
         if (XAPIQueryInfo.RequestType.NODE.equals(info.getKind())) {
-            bboxData = datasetReader.iterateSelectedNodes(info.getBboxSelectors(), info.getTagSelectors());
+            bboxData = datasetReader.iterateSelectedNodes(info.getSelectors());
         } else if (XAPIQueryInfo.RequestType.WAY.equals(info.getKind())) {
-            bboxData = datasetReader.iterateSelectedWays(info.getBboxSelectors(), info.getTagSelectors());
+            bboxData = datasetReader.iterateSelectedWays(info.getSelectors());
         } else if (XAPIQueryInfo.RequestType.RELATION.equals(info.getKind())) {
-            bboxData = datasetReader.iterateSelectedRelations(info.getBboxSelectors(), info.getTagSelectors());
+            bboxData = datasetReader.iterateSelectedRelations(info.getSelectors());
         } else if (XAPIQueryInfo.RequestType.ALL.equals(info.getKind())) {
-            bboxData = datasetReader.iterateSelectedPrimitives(info.getBboxSelectors(), info.getTagSelectors());
+            bboxData = datasetReader.iterateSelectedPrimitives(info.getSelectors());
         } else if (XAPIQueryInfo.RequestType.MAP.equals(info.getKind())) {
-            Selector.Polygon boundingBox = info.getBboxSelectors().get(0);
-            bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(), boundingBox.getRight(),
-                    boundingBox.getTop(), boundingBox.getBottom(), true);
+            if (info.getSelectors().size() == 1) {
+                Selector.Polygon boundingBox = (Selector.Polygon) info.getSelectors().get(0);
+                bboxData = datasetReader.iterateBoundingBox(boundingBox.getLeft(), boundingBox.getRight(),
+                        boundingBox.getTop(), boundingBox.getBottom(), true);
+            }
         }
 
         return bboxData;

@@ -12,11 +12,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringAnyPub() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getSelectors().size(), 1);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             Assert.assertEquals(sel.getWhereParam().get(1), "pub");
@@ -30,11 +29,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringNodeRestaurant() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("node[amenity=restaurant]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.NODE);
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getSelectors().size(), 1);
 
-            SelectorGroup group = (SelectorGroup) info.getTagSelectors().get(0);
+            SelectorGroup group = (SelectorGroup) info.getSelectors().get(0);
             Selector sel = group.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
@@ -50,14 +48,14 @@ public class XAPIQueryInfoTest {
     public void testFromStringWaysInArea() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("way[bbox=-180,-90,1.8e+2,90.0]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.WAY);
-            Assert.assertEquals(info.getTagSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
 
-            Assert.assertEquals(info.getBboxSelectors().get(0).getLeft(), -180, 1.0e-6);
-            Assert.assertEquals(info.getBboxSelectors().get(0).getRight(), 180, 1.0e-6);
-            Assert.assertEquals(info.getBboxSelectors().get(0).getTop(), 90, 1.0e-6);
-            Assert.assertEquals(info.getBboxSelectors().get(0).getBottom(), -90, 1.0e-6);
+            Selector.Polygon selector = (Selector.Polygon) info.getSelectors().get(0);
+            Assert.assertEquals(selector.getLeft(), -180, 1.0e-6);
+            Assert.assertEquals(selector.getRight(), 180, 1.0e-6);
+            Assert.assertEquals(selector.getTop(), 90, 1.0e-6);
+            Assert.assertEquals(selector.getBottom(), -90, 1.0e-6);
 
         } catch (XAPIParseException e) {
             Assert.fail("Shouldn't fail parsing bboxes.", e);
@@ -70,11 +68,10 @@ public class XAPIQueryInfoTest {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("relation[@uid=1]");
             // tag selectors is a misnomer - it's all selectors except the bbox
             // one
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.RELATION);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Uid.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), 1);
@@ -90,11 +87,10 @@ public class XAPIQueryInfoTest {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("way[@user=TestUser]");
             // tag selectors is a misnomer - it's all selectors except the bbox
             // one
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.WAY);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.User.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), "TestUser");
@@ -110,11 +106,10 @@ public class XAPIQueryInfoTest {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[@changeset=1]");
             // tag selectors is a misnomer - it's all selectors except the bbox
             // one
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Changeset.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), 1);
@@ -128,11 +123,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringByChildPredicateWayNode() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("way[not(nd)]");
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.WAY);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.ChildPredicate.WayNode.class);
             Assert.assertEquals(sel.getWhereParam().size(), 0);
 
@@ -145,11 +139,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringByChildPredicateRelationRelation() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("relation[relation]");
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.RELATION);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.ChildPredicate.RelationMember.class);
             Assert.assertEquals(sel.getWhereParam().size(), 0);
 
@@ -162,11 +155,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringByChildPredicateNodeTag() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("node[tag]");
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.NODE);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.ChildPredicate.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 0);
 
@@ -179,11 +171,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringWildcard() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=*]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getSelectors().size(), 1);
 
-            Selector group = info.getTagSelectors().get(0);
+            Selector group = info.getSelectors().get(0);
             Assert.assertEquals(group.getClass(), SelectorGroup.class);
             Selector sel = ((SelectorGroup) group).getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.Wildcard.class);
@@ -199,18 +190,17 @@ public class XAPIQueryInfoTest {
     public void testBoundingBoxSelectorAfterTagSelector() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=*][bbox=-91.5,44.7,-91.3,44.8]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 1);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getSelectors().size(), 2);
 
-            Selector sel = info.getTagSelectors().get(0);
+            Selector sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), SelectorGroup.class);
             Assert.assertEquals(((SelectorGroup) sel).getSelectors().size(), 1);
             Assert.assertEquals(((SelectorGroup) sel).getSelectors().get(0).getClass(), Selector.Tag.Wildcard.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             
-            sel = info.getBboxSelectors().get(0);
+            sel = info.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Polygon.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
 
@@ -223,12 +213,11 @@ public class XAPIQueryInfoTest {
     public void testFromStringWildcardMultipleKeys() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity|shop=*]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
 
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Assert.assertEquals(info.getTagSelectors().get(0).getClass(), SelectorGroup.class);
-            SelectorGroup group = (SelectorGroup) info.getTagSelectors().get(0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
+            Assert.assertEquals(info.getSelectors().get(0).getClass(), SelectorGroup.class);
+            SelectorGroup group = (SelectorGroup) info.getSelectors().get(0);
             Assert.assertEquals(group.getSelectors().size(), 2);
 
             Selector sel = group.getSelectors().get(0);
@@ -250,11 +239,10 @@ public class XAPIQueryInfoTest {
     public void testFromStringMultipleValues() {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString("*[amenity=pub|restaurant]");
-            Assert.assertEquals(info.getBboxSelectors().size(), 0);
             Assert.assertEquals(info.getKind(), RequestType.ALL);
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
+            Assert.assertEquals(info.getSelectors().size(), 1);
 
-            SelectorGroup group = (SelectorGroup) info.getTagSelectors().get(0);
+            SelectorGroup group = (SelectorGroup) info.getSelectors().get(0);
             Selector sel = group.getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.class);
             Assert.assertEquals(sel.getWhereParam().size(), 2);
@@ -355,7 +343,8 @@ public class XAPIQueryInfoTest {
     @Test
     public void testBboxArea() throws XAPIParseException {
         XAPIQueryInfo info = XAPIQueryInfo.fromString("way[bbox=-180,-90,1.8e+2,90.0]");
-        Assert.assertEquals(info.getBboxSelectors().get(0).area(), 64800.0);
+        Selector.Polygon selector = (Selector.Polygon) info.getSelectors().get(0);
+        Assert.assertEquals(selector.area(), 64800.0);
     }
 
     private void assertDoesNotParse(String query) {
@@ -379,8 +368,8 @@ public class XAPIQueryInfoTest {
     private void assertDoesParseTag(String query, String key, String value) {
         try {
             XAPIQueryInfo info = XAPIQueryInfo.fromString(query);
-            Assert.assertEquals(info.getTagSelectors().size(), 1);
-            Selector group = info.getTagSelectors().get(0);
+            Assert.assertEquals(info.getSelectors().size(), 1);
+            Selector group = info.getSelectors().get(0);
             Assert.assertEquals(group.getClass(), SelectorGroup.class);
             Selector sel = ((SelectorGroup) group).getSelectors().get(0);
             Assert.assertEquals(sel.getClass(), Selector.Tag.class);

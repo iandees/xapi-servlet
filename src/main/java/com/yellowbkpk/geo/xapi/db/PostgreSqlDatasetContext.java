@@ -246,7 +246,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Select all nodes inside the box into the node temp table.
         LOG.finer("Selecting all nodes inside bounding box.");
         rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
-                + " SELECT * FROM nodes WHERE (geom && ?)", new PGgeometry(bboxPolygon));
+                + " SELECT * FROM nodes WHERE ST_Intersects(geom, ?)", new PGgeometry(bboxPolygon));
 
         LOG.finer("Adding a primary key to the temporary nodes table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
@@ -259,8 +259,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
             // We have full way geometry available so select ways
             // overlapping the requested bounding box.
-            rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
-                    + " SELECT * FROM ways WHERE (linestring && ?)", new PGgeometry(bboxPolygon));
+            String sql = "CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
+                    + " SELECT * FROM ways WHERE ST_Intersects(linestring, ?)";
+            LOG.info("Exec SQL: " + sql + " -- args: " + bboxPolygon);
+            rowCount = jdbcTemplate.update(sql, new PGgeometry(bboxPolygon));
 
         } else if (capabilityChecker.isWayBboxSupported()) {
             LOG.finer("Selecting all ways inside bounding box using dynamically built"
@@ -406,22 +408,15 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedNodes(List<Selector.Polygon> bboxSelectors,
-            List<? extends Selector> tagSelectors) {
-        int rowCount;
+    public ReleasableIterator<EntityContainer> iterateSelectedNodes(List<? extends Selector> tagSelectors) {
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
         
-        String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
-        List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
-        String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
-        List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
-        List<Object> objArgs = new LinkedList<Object>();
-        objArgs.addAll(bboxWhereObj);
-        objArgs.addAll(tagsWhereObj);
+        String whereStr = buildSelectorWhereClause(tagSelectors);
+        List<Object> whereObj = buildSelectorWhereParameters(tagSelectors);
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
         // these options prevent this. Note that this is not recommended
@@ -434,8 +429,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
         // Select all nodes inside the box into the node temp table.
         LOG.finer("Selecting all nodes inside bounding box.");
-        rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
-                + " SELECT * FROM nodes WHERE " + bboxWhereStr + " AND " + tagsWhereStr, objArgs.toArray());
+        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
+                + " SELECT * FROM nodes WHERE " + whereStr, whereObj.toArray());
 
         LOG.finer("Adding a primary key to the temporary nodes table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
@@ -505,8 +500,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj.toString();
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedWays(List<Selector.Polygon> bboxSelectors,
-            List<? extends Selector> tagSelectors) {
+    public ReleasableIterator<EntityContainer> iterateSelectedWays(List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         ArrayList<Bound> bounds = new ArrayList<Bound>();
@@ -515,21 +509,19 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
         
-        String bboxWhereStr = buildBboxWhereClause(bboxSelectors).replaceAll("geom", "bbox");
-        List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
-        String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
-        List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
-        List<Object> objArgs = new LinkedList<Object>();
-        objArgs.addAll(bboxWhereObj);
-        objArgs.addAll(tagsWhereObj);
+        String whereStr = buildSelectorWhereClause(tagSelectors);
+        whereStr = whereStr.replace("geom", "bbox");
+        List<Object> whereObj = buildSelectorWhereParameters(tagSelectors);
 
-        if (bboxSelectors.size() > 0) {
-            Selector.Polygon boundingBox = bboxSelectors.get(0);
-            double right = boundingBox.getRight();
-            double left = boundingBox.getLeft();
-            double top = boundingBox.getTop();
-            double bottom = boundingBox.getBottom();
-            bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+        for (Selector selector : tagSelectors) {
+            if (selector instanceof Selector.Polygon) {
+                Selector.Polygon boundingBox = (Selector.Polygon) selector;
+                double right = boundingBox.getRight();
+                double left = boundingBox.getLeft();
+                double top = boundingBox.getTop();
+                double bottom = boundingBox.getBottom();
+                bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+            }
         }
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
@@ -549,25 +541,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
         // We have full way geometry available so select ways
         // overlapping the requested bounding box.
-        StringBuilder sql = new StringBuilder("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways ");
-        if (bboxWhereObj.size() > 0 || tagSelectors.size() > 0) {
-            sql.append("WHERE ");
-            if (bboxWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(bboxWhereStr);
-                sql.append(")");
-                if (tagSelectors.size() > 0) {
-                    sql.append(" AND ");
-                }
-            }
-            if (tagSelectors.size() > 0) {
-                sql.append("(");
-                sql.append(tagsWhereStr);
-                sql.append(")");
-            }
-        }
+        String sql = "CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS SELECT * FROM ways "
+            + whereStr;
 
-        rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+        rowCount = jdbcTemplate.update(sql, whereObj.toArray());
 
         LOG.finer(rowCount + " rows affected.");
 
@@ -609,8 +586,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedRelations(List<Selector.Polygon> bboxSelectors,
-            List<? extends Selector> tagSelectors) {
+    public ReleasableIterator<EntityContainer> iterateSelectedRelations(List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
         ArrayList<Bound> bounds = new ArrayList<Bound>();
@@ -618,14 +594,16 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         if (!initialized) {
             initialize();
         }
-        
-        if (bboxSelectors.size() > 0) {
-            Selector.Polygon boundingBox = bboxSelectors.get(0);
-            double right = boundingBox.getRight();
-            double left = boundingBox.getLeft();
-            double top = boundingBox.getTop();
-            double bottom = boundingBox.getBottom();
-            bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+
+        for (Selector selector : tagSelectors) {
+            if (selector instanceof Selector.Polygon) {
+                Selector.Polygon boundingBox = (Selector.Polygon) selector;
+                double right = boundingBox.getRight();
+                double left = boundingBox.getLeft();
+                double top = boundingBox.getTop();
+                double bottom = boundingBox.getBottom();
+                bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+            }
         }
 
         String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
@@ -664,22 +642,23 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(List<Selector.Polygon> bboxSelectors,
-            List<? extends Selector> tagSelectors) {
+    public ReleasableIterator<EntityContainer> iterateSelectedPrimitives(List<? extends Selector> tagSelectors) {
         ArrayList<Bound> bounds = new ArrayList<Bound>();
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
             initialize();
         }
-        
-        if (bboxSelectors.size() > 0) {
-            Selector.Polygon boundingBox = bboxSelectors.get(0);
-            double right = boundingBox.getRight();
-            double left = boundingBox.getLeft();
-            double top = boundingBox.getTop();
-            double bottom = boundingBox.getBottom();
-            bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+
+        for (Selector selector : tagSelectors) {
+            if (selector instanceof Selector.Polygon) {
+                Selector.Polygon boundingBox = (Selector.Polygon) selector;
+                double right = boundingBox.getRight();
+                double left = boundingBox.getLeft();
+                double top = boundingBox.getTop();
+                double bottom = boundingBox.getBottom();
+                bounds.add(new Bound(right, left, top, bottom, "Osmosis " + OsmosisConstants.VERSION));
+            }
         }
 
         // PostgreSQL sometimes incorrectly chooses to perform full table scans,
@@ -691,16 +670,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
 
-        String bboxWhereStr = buildBboxWhereClause(bboxSelectors);
-        List<Object> bboxWhereObj = buildBboxWhereParameters(bboxSelectors);
         String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
         List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
 
-        populateNodeTables(bboxWhereStr, bboxWhereObj, tagsWhereStr, tagsWhereObj);
+        populateNodeTables(tagsWhereStr, tagsWhereObj);
 
-        populateWayTables(bboxWhereStr, bboxWhereObj, tagsWhereStr, tagsWhereObj);
+        populateWayTables(tagsWhereStr, tagsWhereObj);
 
-        populateRelationTables(bboxWhereStr, bboxWhereObj, tagsWhereStr, tagsWhereObj);
+        populateRelationTables(tagsWhereStr, tagsWhereObj);
 
         backfillRelationsTables();
 
@@ -868,32 +845,12 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return idsSql.toString();
     }
 
-    private int populateNodeTables(String bboxWhereStr, List<Object> bboxWhereObj, String tagsWhereStr, List<Object> tagsWhereObj)
+    private int populateNodeTables(String whereStr, List<Object> whereObj)
     {
         // Select all nodes inside the box into the node temp table.
         LOG.finer("Selecting all nodes inside bounding box.");
-        StringBuilder sql = new StringBuilder(
-                "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes ");
-        if (bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
-            sql.append("WHERE ");
-            if (bboxWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(bboxWhereStr);
-                sql.append(")");
-                if (tagsWhereObj.size() > 0) {
-                    sql.append(" AND ");
-                }
-            }
-            if (tagsWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(tagsWhereStr);
-                sql.append(")");
-            }
-        }
-        List<Object> objArgs = new ArrayList<Object>();
-        objArgs.addAll(bboxWhereObj);
-        objArgs.addAll(tagsWhereObj);
-        int rowCount = jdbcTemplate.update(sql.toString(), objArgs.toArray());
+        String sql = "CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS SELECT * FROM nodes " + whereStr;
+        int rowCount = jdbcTemplate.update(sql.toString(), whereObj.toArray());
 
         LOG.finer("Adding a primary key to the temporary nodes table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
@@ -904,31 +861,10 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return rowCount;
     }
 
-    private int populateWayTables(String bboxWhereStr, List<Object> bboxWhereObj, String tagsWhereStr, List<Object> tagsWhereObj)
+    private int populateWayTables(String whereStr, List<Object> whereObj)
     {
         // Select all ways inside the bounding box into the way temp table.
         LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
-        // We have full way geometry available so select ways
-        // overlapping the requested bounding box.
-        StringBuilder sql = new StringBuilder();
-        if (bboxWhereObj.size() > 0 || tagsWhereObj.size() > 0) {
-            if (bboxWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(bboxWhereStr); // FIXME
-                sql.append(")");
-                if (tagsWhereObj.size() > 0) {
-                    sql.append(" AND ");
-                }
-            }
-            if (tagsWhereObj.size() > 0) {
-                sql.append("(");
-                sql.append(tagsWhereStr);
-                sql.append(")");
-            }
-        }
-        List<Object> objArgs = new ArrayList<Object>();
-        objArgs.addAll(bboxWhereObj);
-        objArgs.addAll(tagsWhereObj);
 
         int rowCount;
         // Select all ways inside the bounding box into the way temp table.
@@ -937,15 +873,15 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             // We have full way geometry available so select ways
             // overlapping the requested bounding box.
             rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_ways ON COMMIT DROP AS"
-                    + " SELECT * FROM ways WHERE " + sql.toString().replace("geom", "linestring"), objArgs.toArray());
+                    + " SELECT * FROM ways WHERE " + whereStr.replace("geom", "linestring"), whereObj.toArray());
 
         } else if (capabilityChecker.isWayBboxSupported()) {
             LOG.finer("Selecting all ways inside bounding box using dynamically built"
                     + " way linestring with way bbox indexing.");
             
             List<Object> args = new ArrayList<Object>();
-            args.addAll(objArgs);
-            args.addAll(objArgs);
+            args.addAll(whereObj);
+            args.addAll(whereObj);
             
             // The inner query selects the way id and node coordinates for all
             // ways constrained by the way bounding box which is indexed. The
@@ -961,11 +897,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                     + "    SELECT w.*, n.geom AS geom FROM nodes n"
                     + "    INNER JOIN way_nodes wn ON n.id = wn.node_id"
                     + "    INNER JOIN ways w ON wn.way_id = w.id"
-                    + "    WHERE (" + sql.toString().replace("tags", "w.tags").replace("bbox", "w.bbox") + ") ORDER BY wn.way_id, wn.sequence_id"
+                    + "    WHERE (" + whereStr.replace("tags", "w.tags").replace("bbox", "w.bbox") + ") ORDER BY wn.way_id, wn.sequence_id"
                     + "   ) c "
                     + "   GROUP BY c.id"
                     + "  ) w "
-                    + "WHERE (" + sql.toString().replace("tags", "w.tags").replace("bbox", "w.way_line") + ")",
+                    + "WHERE (" + whereStr.replace("tags", "w.tags").replace("bbox", "w.way_line") + ")",
                     args.toArray());
 
         } else {
@@ -990,8 +926,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return rowCount;
     }
 
-    private int populateRelationTables(String bboxWhereStr, List<Object> bboxWhereObj, String tagsWhereStr,
-            List<Object> tagsWhereObj) {
+    private int populateRelationTables(String whereStr, List<Object> whereObj) {
         // Select all relations containing the nodes or ways into the relation
         // table.
         LOG.finer("Selecting all relation ids containing selected nodes or ways.");

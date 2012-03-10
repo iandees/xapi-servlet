@@ -38,22 +38,18 @@ public class XAPIQueryInfo {
     }
 
     private RequestType type;
-    private List<Selector.Polygon> boundingBoxes;
     private List<Selector> selectors;
     private Filetype filetype;
 
-    private XAPIQueryInfo(RequestType type, Filetype filetype, List<Selector> selectors,
-            List<Selector.Polygon> bboxSelectors) {
+    private XAPIQueryInfo(RequestType type, Filetype filetype, List<Selector> selectors) {
         this.type = type;
         this.filetype = filetype;
         this.selectors = selectors;
-        this.boundingBoxes = bboxSelectors;
     }
 
     public static XAPIQueryInfo fromString(String str) throws XAPIParseException {
         ParseState state = new ParseState(str);
         List<Selector> selectors = new LinkedList<Selector>();
-        List<Selector.Polygon> bboxSelectors = new LinkedList<Selector.Polygon>();
 
         RequestType type = parseRequestType(state);
         Filetype ftype = Filetype.xml;
@@ -61,9 +57,9 @@ public class XAPIQueryInfo {
             ftype = parseFiletype(state);
             state.expect("?");
             if ("bbox".equals(state.peek(4))) {
-                bboxSelectors.add(parseBboxSelector(state));
+                selectors.add(parseBboxSelector(state));
             } else if ("poly".equals(state.peek(4))) {
-                bboxSelectors.add(parsePolygonSelector(state));
+                selectors.add(parsePolygonSelector(state));
             }
 
         } else {
@@ -72,13 +68,7 @@ public class XAPIQueryInfo {
                 String nextChar = state.peek(1);
                 if ("[".equals(nextChar)) {
                     List<Selector> sels = parseBracketedSelector(state, type);
-                    for (Selector sel : sels) {
-                        if (sel instanceof Selector.Polygon) {
-                            bboxSelectors.add((Selector.Polygon) sel);
-                        } else {
-                            selectors.add(sel);
-                        }
-                    }
+                    selectors.addAll(sels);
                 } else if (".".equals(nextChar)) {
                     ftype = parseFiletype(state);
                 } else {
@@ -87,7 +77,7 @@ public class XAPIQueryInfo {
             }
         }
 
-        return new XAPIQueryInfo(type, ftype, selectors, bboxSelectors);
+        return new XAPIQueryInfo(type, ftype, selectors);
     }
 
     private static Filetype parseFiletype(ParseState state) throws XAPIParseException {
@@ -557,12 +547,8 @@ public class XAPIQueryInfo {
         return type;
     }
 
-    public List<Selector> getTagSelectors() {
+    public List<Selector> getSelectors() {
         return selectors;
-    }
-
-    public List<Selector.Polygon> getBboxSelectors() {
-        return boundingBoxes;
     }
 
     public Filetype getFiletype() {
