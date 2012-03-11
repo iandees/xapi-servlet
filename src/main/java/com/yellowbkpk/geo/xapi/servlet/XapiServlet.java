@@ -60,6 +60,8 @@ public class XapiServlet extends HttpServlet {
             // Parse URL
             XAPIQueryInfo info = null;
             Filetype filetype = Filetype.xml;
+            String query;
+
             try {
                 StringBuffer urlBuffer = request.getRequestURL();
                 if (request.getQueryString() != null) {
@@ -67,14 +69,14 @@ public class XapiServlet extends HttpServlet {
                 }
                 String reqUrl = urlBuffer.toString();
 
-		// this ensures that slashes inside any predicate block aren't counted as
-		// part of the URL, for example when other URLs are used in tag queries.
-		int predicateBegin = reqUrl.indexOf('[');
-		if (predicateBegin < 0) {
-		   predicateBegin = reqUrl.length();
-		}
+                // this ensures that slashes inside any predicate block aren't counted as
+                // part of the URL, for example when other URLs are used in tag queries.
+                int predicateBegin = reqUrl.indexOf('[');
+                if (predicateBegin < 0) {
+                   predicateBegin = reqUrl.length();
+                }
 
-                String query = reqUrl.substring(reqUrl.lastIndexOf('/', predicateBegin) + 1);
+                query = reqUrl.substring(reqUrl.lastIndexOf('/', predicateBegin) + 1);
                 query = URLDecoder.decode(query, "UTF-8");
 
                 if (XapiQueryStats.isQueryAlreadyRunning(query, request.getRemoteHost())) {
@@ -85,7 +87,7 @@ public class XapiServlet extends HttpServlet {
                 }
 
                 tracker.receivedUrl(query, request.getRemoteHost());
-                log.info("Query " + query);
+                log.info(query + " starting.");
                 info = XAPIQueryInfo.fromString(query);
 
                 if (info.getFiletype() != null) {
@@ -146,7 +148,7 @@ public class XapiServlet extends HttpServlet {
                 }
                 tracker.startSerialization();
                 middle = System.currentTimeMillis();
-                log.info("Query complete: " + (middle - start) + "ms");
+                log.info(query + " complete: " + (middle - start) + "ms");
 
                 // Build up a writer connected to the response output stream
                 response.setContentType(filetype.getContentTypeString());
@@ -200,7 +202,7 @@ public class XapiServlet extends HttpServlet {
             }
 
             long end = System.currentTimeMillis();
-            log.info("Serialization complete: " + (end - middle) + "ms");
+            log.info(query + " serialization complete: " + (end - middle) + "ms");
             tracker.complete();
         } catch (OsmosisRuntimeException e) {
             tracker.error(e);

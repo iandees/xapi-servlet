@@ -82,7 +82,7 @@ public class ApiServlet extends HttpServlet {
                     ids.add(Long.parseLong(string));
                 }
 
-                log.info("Query for " + primitiveType + " " + primitiveIdStr);
+                log.info(primitiveType + " " + primitiveIdStr + " started.");
             } catch (NumberFormatException e) {
                 tracker.error(e);
                 response.sendError(500, "Could not parse query: " + e.getMessage());
@@ -171,7 +171,7 @@ public class ApiServlet extends HttpServlet {
             }
 
             long end = System.currentTimeMillis();
-            log.info("Serialization complete: " + (end - middle) + "ms");
+            log.info(primitiveType + " " + ids + "Serialization complete: " + (end - middle) + "ms");
             tracker.complete();
         } catch (OsmosisRuntimeException e) {
             tracker.error(e);
