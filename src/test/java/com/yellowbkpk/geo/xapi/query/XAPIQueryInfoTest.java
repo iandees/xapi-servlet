@@ -200,7 +200,7 @@ public class XAPIQueryInfoTest {
             Assert.assertEquals(sel.getWhereParam().size(), 1);
             Assert.assertEquals(sel.getWhereParam().get(0), "amenity");
             
-            sel = info.getSelectors().get(0);
+            sel = info.getSelectors().get(1);
             Assert.assertEquals(sel.getClass(), Selector.Polygon.class);
             Assert.assertEquals(sel.getWhereParam().size(), 1);
 
