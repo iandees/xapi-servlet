@@ -68,11 +68,11 @@ public class StatsServlet extends HttpServlet {
             writer.append("<td><tt>").append(stat.getRequest()).println("</tt></td>");
             if (stat.isActive()) {
                 writer.println("<td>-</td>");
-                writer.append("<td>").append(prettyTime(stat.getStartTime(), now)).println("</td>");
+                writer.append("<td>").append(prettyTimeOngoing(stat.getStartTime())).println("</td>");
                 // writer.println("<td><a href='kill?id=").append(stat.getThreadId()).append("'>Kill</a>");
             } else {
                 writer.append("<td>").append(Long.toString(stat.getElementCount())).println("</td>");
-                writer.append("<td>").append(prettyTime(stat.getStartTime(), stat.getEndTime())).println("</td>");
+                writer.append("<td>").append(prettyTime(stat.getOverallElapsedTime())).println("</td>");
             }
             writer.println("</tr>\n");
             even = !even;
@@ -80,11 +80,10 @@ public class StatsServlet extends HttpServlet {
         writer.println("</table>\n");
         writer.println("</body></html>");
     }
-
-    private String prettyTime(long startTime, long endTime) {
-        long deltaMs = endTime - startTime;
+    
+    private String prettyTime(long elapsedMillis) {
         StringBuilder b = new StringBuilder();
-        long x = deltaMs;
+        long x = elapsedMillis;
         long millis = x % 1000;
         x /= 1000;
         long seconds = x % 60;
@@ -125,5 +124,15 @@ public class StatsServlet extends HttpServlet {
         b.append(" sec");
         b.append(seconds == 1 ? "" : "s");
         return b.toString();
+    }
+
+    private String prettyTimeOngoing(long startTime) {
+        long deltaMs = System.currentTimeMillis() - startTime;
+        return prettyTime(deltaMs);
+    }
+
+    private String prettyTime(long startTime, long endTime) {
+        long deltaMs = endTime - startTime;
+        return prettyTime(deltaMs);
     }
 }

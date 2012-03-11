@@ -137,8 +137,16 @@ public class XapiQueryStats {
         return startTime;
     }
 
-    public long getEndTime() {
-        return completionTime;
+    public long getDbQueryElapsedTime() {
+        return (serializationStartTime - dbStartTime);
+    }
+
+    public long getSerializationElapsedTime() {
+        return (completionTime - serializationStartTime);
+    }
+
+    public long getOverallElapsedTime() {
+        return (completionTime - startTime);
     }
 
     public boolean isActive() {
