@@ -474,6 +474,41 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj.toString();
     }
 
+    private List<Object> buildTagSelectorWhereParameters(List<? extends Selector> tagSelectors) {
+        List<Object> obj = new LinkedList<Object>();
+        for (Selector selector : tagSelectors) {
+            if (selector instanceof Selector.Nearby || selector instanceof Selector.Polygon) {
+
+            } else {
+                obj.addAll(selector.getWhereParam());
+            }
+        }
+        return obj;
+    }
+
+    private String buildTagSelectorWhereClause(List<? extends Selector> tagSelectors) {
+        StringBuilder obj = new StringBuilder();
+        boolean first = true;
+        for (Selector selector : tagSelectors) {
+            if (selector instanceof Selector.Nearby || selector instanceof Selector.Polygon) {
+
+            } else {
+                if (!first) {
+                    obj.append(" AND ");
+                }
+
+                obj.append(selector.getWhereString());
+                first = false;
+            }
+        }
+        if (first) {
+            // empty selector, put in a null statement which postgres should
+            // just optimise away
+            obj.append("(1=1)");
+        }
+        return obj.toString();
+    }
+
     private List<Object> buildBboxWhereParameters(List<Selector.Polygon> bboxSelectors) {
         List<Object> obj = new LinkedList<Object>();
         for (Selector selector : bboxSelectors) {
@@ -670,13 +705,15 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
 
-        String tagsWhereStr = buildSelectorWhereClause(tagSelectors);
-        List<Object> tagsWhereObj = buildSelectorWhereParameters(tagSelectors);
+        String whereStr = buildSelectorWhereClause(tagSelectors);
+        List<Object> whereObj = buildSelectorWhereParameters(tagSelectors);
 
-        populateNodeTables(tagsWhereStr, tagsWhereObj);
+        populateNodeTables(whereStr, whereObj);
 
-        populateWayTables(tagsWhereStr, tagsWhereObj);
+        populateWayTables(whereStr, whereObj);
 
+        String tagsWhereStr = buildTagSelectorWhereClause(tagSelectors);
+        List<Object> tagsWhereObj = buildTagSelectorWhereParameters(tagSelectors);
         populateRelationTables(tagsWhereStr, tagsWhereObj);
 
         backfillRelationsTables();
