@@ -29,6 +29,7 @@ import org.openstreetmap.osmosis.core.util.PropertiesPersister;
 
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
+import com.yellowbkpk.geo.xapi.writer.XapiJsonWriter;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public class ApiServlet extends HttpServlet {
@@ -61,6 +62,7 @@ public class ApiServlet extends HttpServlet {
             String primitiveType;
             ArrayList<Long> ids = new ArrayList<Long>();
             Filetype filetype = Filetype.xml;
+            String jsonpMethod = null; // TODO Pull this out of the URL somehow
             try {
                 StringBuffer urlBuffer = request.getRequestURL();
                 String queryString = request.getQueryString();
@@ -153,6 +155,10 @@ public class ApiServlet extends HttpServlet {
 
                 // Serialize to the client
                 XapiSink sink = filetype.getSink(out);
+
+                if(sink instanceof XapiJsonWriter && jsonpMethod != null) {
+                    ((XapiJsonWriter) sink).setJsonpMethod(jsonpMethod);
+                }
 
                 try {
                     Date planetDate = getDatabaseLastModifiedDate(workingDirectory);

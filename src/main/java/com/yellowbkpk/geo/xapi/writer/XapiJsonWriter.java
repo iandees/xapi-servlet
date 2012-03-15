@@ -86,4 +86,8 @@ public class XapiJsonWriter extends BaseJsonWriter implements XapiSink {
     public void initialize(Map<String, Object> metaData) {
 
     }
+
+    public void setJsonpMethod(String jsonpMethod) {
+        osmWriter.setJsonpMethod(jsonpMethod);
+    }
 }

@@ -33,6 +33,7 @@ import com.yellowbkpk.geo.xapi.db.Selector;
 import com.yellowbkpk.geo.xapi.db.Selector.Polygon;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
+import com.yellowbkpk.geo.xapi.writer.XapiJsonWriter;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public class XapiServlet extends HttpServlet {
@@ -60,6 +61,7 @@ public class XapiServlet extends HttpServlet {
             // Parse URL
             XAPIQueryInfo info = null;
             Filetype filetype = Filetype.xml;
+            String jsonpMethod = null; // TODO Pull this out of the URL somehow
             String query;
 
             try {
@@ -168,6 +170,10 @@ public class XapiServlet extends HttpServlet {
 
                 // Serialize to the client
                 XapiSink sink = filetype.getSink(out);
+
+                if(sink instanceof XapiJsonWriter && jsonpMethod != null) {
+                    ((XapiJsonWriter) sink).setJsonpMethod(jsonpMethod);
+                }
 
                 try {
                     Date planetDate = getDatabaseLastModifiedDate(workingDirectory);
