@@ -477,7 +477,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     private List<Object> buildTagSelectorWhereParameters(List<? extends Selector> tagSelectors) {
         List<Object> obj = new LinkedList<Object>();
         for (Selector selector : tagSelectors) {
-            if (selector instanceof Selector.Nearby || selector instanceof Selector.Polygon) {
+            if (selector instanceof Selector.Polygon) {
 
             } else {
                 obj.addAll(selector.getWhereParam());
@@ -490,7 +490,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         StringBuilder obj = new StringBuilder();
         boolean first = true;
         for (Selector selector : tagSelectors) {
-            if (selector instanceof Selector.Nearby || selector instanceof Selector.Polygon) {
+            if (selector instanceof Selector.Polygon) {
 
             } else {
                 if (!first) {
