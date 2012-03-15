@@ -200,6 +200,17 @@ public class ApiServlet extends HttpServlet {
             throw e;
         }
     }
+    
+    @Override
+    protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        super.doOptions(req, resp);
+
+        String corsHeaderValue = getServletContext().getInitParameter("xapi.corsHeader");
+
+        if (corsHeaderValue != null) {
+            resp.setHeader("Access-Control-Allow-Origin", corsHeaderValue);
+        }
+    }
 
     private Date getDatabaseLastModifiedDate(String workingDirectory) {
         PropertiesPersister localStatePersistor = new PropertiesPersister(new File(workingDirectory, LOCAL_STATE_FILE));
