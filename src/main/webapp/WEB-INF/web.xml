@@ -35,6 +35,9 @@
     <url-pattern>/api/0.6/node/*</url-pattern>
     <url-pattern>/api/0.6/way/*</url-pattern>
     <url-pattern>/api/0.6/relation/*</url-pattern>
+    <url-pattern>/api/0.6/nodes</url-pattern>
+    <url-pattern>/api/0.6/ways</url-pattern>
+    <url-pattern>/api/0.6/relations</url-pattern>
   </servlet-mapping>
   
   <servlet>

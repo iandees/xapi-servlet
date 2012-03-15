@@ -32,6 +32,9 @@ import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public class ApiServlet extends HttpServlet {
+
+    private static final long serialVersionUID = 1L;
+
     private static final DatabasePreferences preferences = new DatabasePreferences(false, false);
 
     private static final String LOCAL_STATE_FILE = "state.txt";
@@ -39,6 +42,7 @@ public class ApiServlet extends HttpServlet {
     private static Logger log = Logger.getLogger("API");
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        log.info("starting ApiServlet doGet");
 
         String host = getServletContext().getInitParameter("xapi.db.host");
         String database = getServletContext().getInitParameter("xapi.db.database");
@@ -59,23 +63,35 @@ public class ApiServlet extends HttpServlet {
             Filetype filetype = Filetype.xml;
             try {
                 StringBuffer urlBuffer = request.getRequestURL();
+                String queryString = request.getQueryString();
                 if (request.getQueryString() != null) {
-                    urlBuffer.append("?").append(request.getQueryString());
+                    urlBuffer.append("?").append(queryString);
                 }
                 String reqUrl = urlBuffer.toString();
                 tracker.receivedUrl(reqUrl, request.getRemoteHost());
-                int lastSlash = reqUrl.lastIndexOf('/');
-                int secondSlash = reqUrl.substring(0, lastSlash).lastIndexOf('/');
-                String primitiveIdStr = reqUrl.substring(lastSlash + 1);
+                
+                String primitiveIdStr;
+                //this allows it to accept queries of the form node/1,2,3 or nodes?nodes=1,2,3
+                if(queryString != null) {
+                    int equals = queryString.indexOf("=");
+                    primitiveType = queryString.substring(0, equals-1);
+                    primitiveIdStr = queryString.substring(equals + 1);
+                } else {
+                    int lastSlash = reqUrl.lastIndexOf('/');
+                    int secondSlash = reqUrl.substring(0, lastSlash).lastIndexOf('/');
+                    primitiveIdStr = reqUrl.substring(lastSlash + 1);
+                    primitiveType = reqUrl.substring(secondSlash + 1, lastSlash);
+                }
                 int lastDot = primitiveIdStr.lastIndexOf(".");
                 if (lastDot > 0) {
                     String filetypeStr = primitiveIdStr.substring(lastDot + 1);
                     filetype = Filetype.valueOf(filetypeStr);
                     primitiveIdStr = primitiveIdStr.substring(0, lastDot);
                 }
-                primitiveType = reqUrl.substring(secondSlash + 1, lastSlash);
                 primitiveIdStr = URLDecoder.decode(primitiveIdStr, "UTF-8");
 
+                log.info("primitiveIdStr: " + primitiveIdStr);
+                
                 String[] primitiveIds = primitiveIdStr.split(",");
                 ids.ensureCapacity(primitiveIds.length);
                 for (String string : primitiveIds) {
