@@ -545,7 +545,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         }
         
         String whereStr = buildSelectorWhereClause(tagSelectors);
-        whereStr = whereStr.replace("geom", "bbox");
+        if (capabilityChecker.isWayLinestringSupported()) {
+            whereStr = whereStr.replace("geom", "linestring");
+        } else if (capabilityChecker.isWayBboxSupported()) {
+            whereStr = whereStr.replace("geom", "bbox");
+        }
         List<Object> whereObj = buildSelectorWhereParameters(tagSelectors);
 
         for (Selector selector : tagSelectors) {
