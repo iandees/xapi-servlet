@@ -44,7 +44,6 @@ import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.WayDao;
 import org.postgis.PGgeometry;
 import org.postgis.Point;
 import org.postgis.Polygon;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
