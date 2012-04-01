@@ -31,6 +31,8 @@ import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+
 public class ApiServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -105,6 +107,26 @@ public class ApiServlet extends HttpServlet {
                 return;
             }
 
+            if(Filetype.geojson == filetype) { 
+        		PostgreSqlDatasetContext dCtx = new PostgreSqlDatasetContext(loginCredentials, preferences);
+            	String geoJSON = dCtx.primitivesAsGeoJSON(primitiveType, ids);
+            	if (geoJSON == null) { 
+            		response.sendError(500, "Unsupported operation.");
+            		return;
+            	}
+            	else 
+            	{
+            		log.info(geoJSON);
+            		response.addHeader("content-type", "application/json");
+                    OutputStream outputStream = response.getOutputStream();
+                    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
+                    out.write(geoJSON);
+                    out.flush();
+                    out.close();
+            		return;
+            	}
+            }
+            
             if (!filetype.isSinkInstalled()) {
                 response.sendError(500, "I don't know how to serialize that.");
                 return;
@@ -201,7 +223,7 @@ public class ApiServlet extends HttpServlet {
         }
     }
     
-    @Override
+	@Override
     protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         super.doOptions(req, resp);
 

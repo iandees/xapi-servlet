@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.openstreetmap.osmosis.core.OsmosisConstants;
@@ -43,6 +44,7 @@ import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.WayDao;
 import org.postgis.PGgeometry;
 import org.postgis.Point;
 import org.postgis.Polygon;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
@@ -774,6 +776,44 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
 
+    }
+    
+    public String primitivesAsGeoJSON(String primitiveType, List<Long> ids) {
+        if (!initialized) {
+            initialize();
+        }
+
+    	String geoJSON = "";
+		String tableName;
+		String geoColumnName;
+		if ("node".equals(primitiveType)) 
+		{ 
+			tableName = "nodes"; 
+			geoColumnName = "geom";
+		}
+		else if ("way".equals(primitiveType)) 
+		{
+	        if (capabilityChecker.isWayLinestringSupported()) {
+	        	tableName = "ways";
+	        	geoColumnName = "linestring";
+	        }
+	        else 
+	        {
+				LOG.log(Level.SEVERE, "I can only serialize ways as geoJSON if the ways table has a geometry column");
+				return null;
+	        }
+		}
+		else {
+			LOG.log(Level.SEVERE, "I can only serialize nodes and ways to geoJSON");
+			return null;
+		}
+    	LOG.info("GeoJSON serialization starting.");
+        String idsSql = buildListSql(ids);
+        String sql = "SELECT ST_AsGeoJSON(ST_Union(" + geoColumnName + ")) FROM " + tableName + " WHERE id IN " + idsSql;
+        geoJSON = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
+        LOG.info(sql);
+		
+		return geoJSON;
     }
 
     public ReleasableIterator<EntityContainer> iterateWays(List<Long> ids) {
