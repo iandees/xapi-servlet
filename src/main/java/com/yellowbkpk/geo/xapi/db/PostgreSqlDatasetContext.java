@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,6 +33,7 @@ import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.store.MultipleSourceIterator;
 import org.openstreetmap.osmosis.core.store.ReleasableAdaptorForIterator;
 import org.openstreetmap.osmosis.core.store.UpcastIterator;
+import org.openstreetmap.osmosis.hstore.PGHStore;
 import org.openstreetmap.osmosis.pgsnapshot.common.DatabaseContext;
 import org.openstreetmap.osmosis.pgsnapshot.common.SchemaVersionValidator;
 import org.openstreetmap.osmosis.pgsnapshot.v0_6.PostgreSqlVersionConstants;
@@ -803,12 +806,49 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 		else {
             throw new IllegalArgumentException("I can only serialize nodes or ways as geoJSON");
         }
-    	LOG.info("GeoJSON serialization starting.");
+        LOG.info("GeoJSON query starting.");
 
         String idsSql = buildListSql(ids);
-        String sql = "SELECT ST_AsGeoJSON(ST_Union(" + geoColumnName + ")) FROM " + tableName + " WHERE id IN " + idsSql;
+        String sql = "SELECT ST_AsGeoJSON(" + geoColumnName + ", 7) AS geojson, tags FROM " + tableName + " WHERE id IN " + idsSql;
 
-        return jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
+        List<Map<String,Object>> results = jdbcTemplate.queryForList(sql, ids.toArray());
+
+        StringBuilder out = new StringBuilder("{\"type\": \"FeatureCollection\", \"features\": [");
+        Iterator<Map<String, Object>> iterator = results.iterator();
+        while (iterator.hasNext()) {
+            Map<String, Object> result = iterator.next();
+
+            out.append("{\"type\": \"Feature\",\"geometry\": ");
+
+            String geojson = (String) result.get("geojson");
+            out.append(geojson);
+
+            out.append(",\"properties\": {");
+            PGHStore tags = (PGHStore) result.get("tags");
+            Iterator<Entry<String, String>> tagIter = tags.entrySet().iterator();
+            while (tagIter.hasNext()) {
+                Map.Entry<String, String> entry = tagIter.next();
+                out.append("\"");
+                out.append(entry.getKey());
+                out.append("\": \"");
+                out.append(entry.getValue());
+                out.append("\"");
+
+                if (tagIter.hasNext()) {
+                    out.append(",");
+                }
+            }
+            out.append("}");
+
+            out.append("}");
+
+            if (iterator.hasNext()) {
+                out.append(",");
+            }
+        }
+        out.append("]}");
+
+        return out.toString();
     }
 
     public ReleasableIterator<EntityContainer> iterateWays(List<Long> ids) {
