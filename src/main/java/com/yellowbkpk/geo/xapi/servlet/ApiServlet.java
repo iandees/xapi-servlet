@@ -132,7 +132,7 @@ public class ApiServlet extends HttpServlet {
                     return;
                 } finally {
                     if (dCtx != null) {
-                        dCtx.complete();
+                        // Don't need .complete() because no transaction is used.
                         dCtx.release();
                     }
                 }
