@@ -782,7 +782,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             initialize();
         }
 
-    	String geoJSON = "";
 		String tableName;
 		String geoColumnName;
 		if ("node".equals(primitiveType)) 
@@ -798,21 +797,18 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 	        }
 	        else 
 	        {
-				LOG.log(Level.SEVERE, "I can only serialize ways as geoJSON if the ways table has a geometry column");
-				return null;
+	            throw new IllegalArgumentException("I can only serialize ways as geoJSON if the ways table has a geometry column");
 	        }
 		}
 		else {
-			LOG.log(Level.SEVERE, "I can only serialize nodes and ways to geoJSON");
-			return null;
-		}
+            throw new IllegalArgumentException("I can only serialize nodes or ways as geoJSON");
+        }
     	LOG.info("GeoJSON serialization starting.");
+
         String idsSql = buildListSql(ids);
         String sql = "SELECT ST_AsGeoJSON(ST_Union(" + geoColumnName + ")) FROM " + tableName + " WHERE id IN " + idsSql;
-        geoJSON = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
-        LOG.info(sql);
-		
-		return geoJSON;
+
+        return jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
     }
 
     public ReleasableIterator<EntityContainer> iterateWays(List<Long> ids) {

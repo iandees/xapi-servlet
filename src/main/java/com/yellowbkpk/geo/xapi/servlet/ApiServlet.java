@@ -109,20 +109,23 @@ public class ApiServlet extends HttpServlet {
                 PostgreSqlDatasetContext dCtx = null;
                 try {
                     dCtx = new PostgreSqlDatasetContext(loginCredentials, preferences);
-                    String geoJSON = dCtx.primitivesAsGeoJSON(primitiveType, ids);
-                    if (geoJSON == null) {
-                        response.sendError(500, "Unsupported operation.");
-                        return;
-                    } else {
-                        log.info(geoJSON);
-                        response.addHeader("content-type", "application/json");
-                        OutputStream outputStream = response.getOutputStream();
-                        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
-                        out.write(geoJSON);
-                        out.flush();
-                        out.close();
+
+                    String geoJSON;
+                    try {
+                        geoJSON = dCtx.primitivesAsGeoJSON(primitiveType, ids);
+                    } catch (IllegalArgumentException e) {
+                        response.sendError(500, "Could not write geojson: " + e.getMessage());
                         return;
                     }
+
+                    log.info(geoJSON);
+                    response.addHeader("Content-Type", "application/json");
+                    OutputStream outputStream = response.getOutputStream();
+                    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
+                    out.write(geoJSON);
+                    out.flush();
+                    out.close();
+                    return;
                 } finally {
                     if (dCtx != null) {
                         dCtx.complete();
