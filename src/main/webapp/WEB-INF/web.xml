@@ -11,19 +11,19 @@
   </context-param>
   <context-param>
     <param-name>xapi.db.username</param-name>
-    <param-value>osm</param-value>
+    <param-value>xapi</param-value>
   </context-param>
   <context-param>
     <param-name>xapi.db.password</param-name>
-    <param-value>osm</param-value>
+    <param-value>xapi</param-value>
   </context-param>
   <context-param>
     <param-name>xapi.db.database</param-name>
-    <param-value>vermont</param-value>
+    <param-value>xapi</param-value>
   </context-param>
   <context-param>
     <param-name>xapi.workingDirectory</param-name>
-    <param-value>/osm/tmp</param-value>
+    <param-value>.</param-value>
   </context-param>
 
   <servlet>
