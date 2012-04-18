@@ -31,8 +31,6 @@ import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-
 public class ApiServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -107,24 +105,30 @@ public class ApiServlet extends HttpServlet {
                 return;
             }
 
-            if(Filetype.geojson == filetype) { 
-        		PostgreSqlDatasetContext dCtx = new PostgreSqlDatasetContext(loginCredentials, preferences);
-            	String geoJSON = dCtx.primitivesAsGeoJSON(primitiveType, ids);
-            	if (geoJSON == null) { 
-            		response.sendError(500, "Unsupported operation.");
-            		return;
-            	}
-            	else 
-            	{
-            		log.info(geoJSON);
-            		response.addHeader("content-type", "application/json");
-                    OutputStream outputStream = response.getOutputStream();
-                    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
-                    out.write(geoJSON);
-                    out.flush();
-                    out.close();
-            		return;
-            	}
+            if (Filetype.geojson == filetype) {
+                PostgreSqlDatasetContext dCtx = null;
+                try {
+                    dCtx = new PostgreSqlDatasetContext(loginCredentials, preferences);
+                    String geoJSON = dCtx.primitivesAsGeoJSON(primitiveType, ids);
+                    if (geoJSON == null) {
+                        response.sendError(500, "Unsupported operation.");
+                        return;
+                    } else {
+                        log.info(geoJSON);
+                        response.addHeader("content-type", "application/json");
+                        OutputStream outputStream = response.getOutputStream();
+                        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
+                        out.write(geoJSON);
+                        out.flush();
+                        out.close();
+                        return;
+                    }
+                } finally {
+                    if (dCtx != null) {
+                        dCtx.complete();
+                        dCtx.release();
+                    }
+                }
             }
             
             if (!filetype.isSinkInstalled()) {
