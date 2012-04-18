@@ -26,6 +26,7 @@ import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.time.DateFormatter;
 import org.openstreetmap.osmosis.core.time.DateParser;
 import org.openstreetmap.osmosis.core.util.PropertiesPersister;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
@@ -105,6 +106,38 @@ public class ApiServlet extends HttpServlet {
                 return;
             }
 
+            if (Filetype.geojson == filetype) {
+                PostgreSqlDatasetContext dCtx = null;
+                try {
+                    dCtx = new PostgreSqlDatasetContext(loginCredentials, preferences);
+
+                    String geoJSON;
+                    try {
+                        geoJSON = dCtx.primitivesAsGeoJSON(primitiveType, ids);
+                    } catch (IllegalArgumentException e) {
+                        response.sendError(500, "Could not write geojson: " + e.getMessage());
+                        return;
+                    } catch (EmptyResultDataAccessException e) {
+                        response.sendError(404, "Could not find that primitive.");
+                        return;
+                    }
+
+                    log.info(geoJSON);
+                    response.addHeader("Content-Type", "application/json");
+                    OutputStream outputStream = response.getOutputStream();
+                    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
+                    out.write(geoJSON);
+                    out.flush();
+                    out.close();
+                    return;
+                } finally {
+                    if (dCtx != null) {
+                        // Don't need .complete() because no transaction is used.
+                        dCtx.release();
+                    }
+                }
+            }
+            
             if (!filetype.isSinkInstalled()) {
                 response.sendError(500, "I don't know how to serialize that.");
                 return;

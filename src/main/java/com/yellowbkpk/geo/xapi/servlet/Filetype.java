@@ -8,7 +8,8 @@ import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public enum Filetype {
     xml("text/xml; charset=utf-8", "com.yellowbkpk.geo.xapi.writer.XapiXmlWriter"),
-    json("application/json", "com.yellowbkpk.geo.xapi.writer.XapiJsonWriter");
+    json("application/json", "com.yellowbkpk.geo.xapi.writer.XapiJsonWriter"),
+    geojson("application/geojson", null);
 
     private final String contentTypeStr;
     private final String filetypeSinkClassName;
