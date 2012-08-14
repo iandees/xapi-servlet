@@ -10,55 +10,49 @@ See the OSM Wiki for more information about XAPI: http://wiki.openstreetmap.org/
 Installation
 ------------
 
-These setup steps assume you're working on a Ubuntu 9.x/10.x/11.x installation.
+These setup steps assume you're working on a Ubuntu 12.x installation.
 
 0. Make sure you have the required packages installed:
 
-    `sudo apt-get install postgresql-9.1 postgresql-9.1-postgis postgresql-contrib-9.1`
+    `sudo apt-get install postgresql-9.1 postgresql-9.1-postgis postgresql-contrib-9.1 openjdk-7-jre`
 
 1. Set up an Osmosis pgsnapshot 0.6 schema in a PostGIS database:
 
     `sudo su - postgres` *(These commands are meant to be run as user `postgres`)*
-
-    `createdb xapi`
     
-    `createlang plpgsql xapi`
-    
-    `createuser xapi` You *do* want the user to be a superuser.
+    `createuser -s xapi`
     
     `psql -d xapi -c "ALTER ROLE xapi PASSWORD 'xapi';"`
+    
+    `createdb xapi`
     
     `psql -d xapi -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql`
     
     `psql -d xapi -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql`
     
-    `psql -d xapi -c "CREATE EXTENSION hstore;"` On postgresql 8.4 you need to run the hstore-new.sql file.
+    `psql -d xapi -c "CREATE EXTENSION hstore;"`
         
     `psql -d xapi -f ~/osmosis/script/pgsnapshot_schema_0.6.sql`
     
     `psql -d xapi -f ~/osmosis/script/pgsnapshot_schema_0.6_linestring.sql`
-    
-    `echo "CREATE INDEX idx_nodes_tags ON nodes USING GIN(tags);" | psql -d xapi`
-    
-    `echo "CREATE INDEX idx_ways_tags ON ways USING GIN(tags);" | psql -d xapi`
-
-    `echo "CREATE INDEX idx_relations_tags ON relations USING GIN(tags);" | psql -d xapi`
 
     `exit` *(Brings us back to original user.)*
 
-2. Tune your postgresql settings for a faster import
+2. Tune your postgresql settings for a faster import. For a good discussion on tuning your database settings, see [this post](http://www.paulnorman.ca/blog/2011/11/loading-a-pgsnapshot-schema-with-a-planet-take-2/) by Paul Norman.
 
 3. Import a planet file (or other piece of OSM data)
     
-    This can be done with --write-pgsql or --write-pgsql-dump
-    
-    For --write-pgsql:
-    
-    `bzcat planet-latest.osm.bz2 | bin/osmosis --fast-read-xml file=- --log-progress --write-pgsql user="xapi" database="xapi"`
+    `bin/osmosis --read-bin file=planet-latest.osm.pbf --log-progress --write-pgsql user="xapi" database="xapi" password="xapi"`
 
-    For `--write-pgsql-dump` you want `enableBboxBuilder=no enableLineStringBuilder=yes`. The `\copy` statements used to load the data are faster.
+4. Add indexes for tags.
+
+    `psql -d xapi -c "CREATE INDEX idx_nodes_tags ON nodes USING GIN(tags);" | psql -d xapi`
+    
+    `psql -d xapi -c "CREATE INDEX idx_ways_tags ON ways USING GIN(tags);" | psql -d xapi`
+
+    `psql -d xapi -c "CREATE INDEX idx_relations_tags ON relations USING GIN(tags);" | psql -d xapi`
   
-4. Grab the latest XAPI war and deploy it with a servlet container like Tomcat or Jetty.
+5. Grab the latest XAPI war and deploy it with a servlet container like Tomcat or Jetty.
 
 Development
 -----------
