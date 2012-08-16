@@ -54,6 +54,31 @@ These setup steps assume you're working on a Ubuntu 12.x installation.
   
 5. Grab the latest XAPI war and deploy it with a servlet container like Tomcat or Jetty.
 
+Keep Your Database Up to Date
+-----------------------------
+
+0. Create a working directory for the Osmosis replication metadata.
+
+    `mkdir ~/.osmosis`
+
+1. Initialize the working directory for Osmosis's use.
+
+    `~/osmosis/bin/osmosis --read-replication-interval-init workingDirectory=~/.osmosis`
+
+2. Find the minutely state file corresponding to a time very near but **before** your planet
+   file's timestamp. I do this by viewing the minutely diff directory and looking for a
+   timestamp near the one on my planet file. Copy the URL for that diff file and download it
+   to Osmosis's newly-created working directory.
+
+    e.g. `wget -O ~/.osmosis/state.txt http://planet.example.com/minutely-replicate/000/000/000.state.txt`
+
+3. Run Osmosis to catch the database up.
+
+    ```
+    ~osmosis/bin/osmosis --read-replication-interval workingDirectory=~/.osmosis \
+                         --write-pgsql-change database="xapi" user="xapi" password="xapi"
+    ```
+
 Development
 -----------
 
