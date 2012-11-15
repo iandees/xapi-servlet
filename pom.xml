@@ -95,6 +95,6 @@
 	</build>
 	<scm>
 		<connection>scm:git@github.com:iandees/xapi-servlet.git</connection>
-		<url>scm:git:git@github.com:iandees/xapi-servlet.git</url>
+		<url>scm:git@github.com:iandees/xapi-servlet.git</url>
 	</scm>
 </project>
