@@ -39,6 +39,15 @@
     <url-pattern>/api/0.6/ways</url-pattern>
     <url-pattern>/api/0.6/relations</url-pattern>
   </servlet-mapping>
+ 
+  <servlet>
+    <servlet-name>TiledApi</servlet-name>
+    <servlet-class>com.yellowbkpk.geo.xapi.servlet.TiledApiServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>TiledApi</servlet-name>
+  	<url-pattern>/api/0.6/tiled/*</url-pattern>
+  </servlet-mapping>
   
   <servlet>
     <servlet-name>Xapi</servlet-name>
