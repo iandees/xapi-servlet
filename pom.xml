@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.yellowbkpk.geo</groupId>
 	<artifactId>osmosis-xapi-servlet</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.0</version>
         <packaging>war</packaging>
 	<name>Osmosis XAPI Servlet</name>
 	<description>A servlet that responds to XAPI queries using Osmosis pgsnapshot and other related classes.</description>
@@ -34,29 +34,29 @@
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>core</artifactId>
-			<version>0.40.2-SNAPSHOT</version>
+			<version>0.40.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>xml</artifactId>
-			<version>0.40.2-SNAPSHOT</version>
+			<version>0.40.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>pgsnapshot</artifactId>
-			<version>0.40.2-SNAPSHOT</version>
+			<version>0.40.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>hstore-jdbc</artifactId>
-			<version>0.40.2-SNAPSHOT</version>
+			<version>0.40.1</version>
 		</dependency>
 		
 		<!-- These are optional. -->
 		<dependency>
 			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>json</artifactId>
-			<version>0.40.2-SNAPSHOT</version>
+			<version>0.40.1</version>
 		</dependency>
 		<!-- Above are optional. -->
 		
