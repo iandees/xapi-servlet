@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.yellowbkpk.geo</groupId>
 	<artifactId>osmosis-xapi-servlet</artifactId>
-	<version>1.1</version>
+	<version>1.1.1</version>
 	<packaging>war</packaging>
 	<name>Osmosis XAPI Servlet</name>
 	<description>A servlet that responds to XAPI queries using Osmosis pgsnapshot and other related classes.</description>
