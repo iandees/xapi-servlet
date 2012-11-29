@@ -1,5 +1,6 @@
 package com.yellowbkpk.geo.xapi.admin;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,7 +29,7 @@ public class XapiQueryStats {
     private long elementCount;
     private String remoteHost;
     private String threadId;
-	private List<Timepoint> timepoints;
+	private List<Timepoint> timepoints = new ArrayList<Timepoint>();
 
     private XapiQueryStats(Thread requestThread) {
         this.startTime = System.currentTimeMillis();
