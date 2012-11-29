@@ -70,7 +70,7 @@ public class ApiServlet extends HttpServlet {
                 }
                 String reqUrl = urlBuffer.toString();
                 tracker.receivedUrl(reqUrl, request.getRemoteHost());
-                
+
                 String primitiveIdStr;
                 //this allows it to accept queries of the form node/1,2,3 or nodes?nodes=1,2,3
                 if(queryString != null) {
@@ -92,7 +92,7 @@ public class ApiServlet extends HttpServlet {
                 primitiveIdStr = URLDecoder.decode(primitiveIdStr, "UTF-8");
 
                 log.info("primitiveIdStr: " + primitiveIdStr);
-                
+
                 String[] primitiveIds = primitiveIdStr.split(",");
                 ids.ensureCapacity(primitiveIds.length);
                 for (String string : primitiveIds) {
@@ -137,7 +137,7 @@ public class ApiServlet extends HttpServlet {
                     }
                 }
             }
-            
+
             if (!filetype.isSinkInstalled()) {
                 response.sendError(500, "I don't know how to serialize that.");
                 return;
@@ -233,7 +233,7 @@ public class ApiServlet extends HttpServlet {
             throw e;
         }
     }
-    
+
     @Override
     protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         super.doOptions(req, resp);

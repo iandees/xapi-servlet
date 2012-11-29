@@ -30,7 +30,6 @@ import com.yellowbkpk.geo.xapi.admin.RequestFilter;
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
 import com.yellowbkpk.geo.xapi.db.Selector;
-import com.yellowbkpk.geo.xapi.db.Selector.Polygon;
 import com.yellowbkpk.geo.xapi.query.XAPIParseException;
 import com.yellowbkpk.geo.xapi.query.XAPIQueryInfo;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
@@ -215,7 +214,7 @@ public class XapiServlet extends HttpServlet {
             throw e;
         }
     }
-    
+
     @Override
     protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         super.doOptions(req, resp);
@@ -236,7 +235,7 @@ public class XapiServlet extends HttpServlet {
     /**
      * Creates an Osmosis releasable iterator over all the elements which are
      * selected by the query.
-     * 
+     *
      * @param datasetReader
      *            The database context to use when executing queries.
      * @param info

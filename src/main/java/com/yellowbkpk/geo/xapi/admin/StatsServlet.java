@@ -19,7 +19,7 @@ public class StatsServlet extends HttpServlet {
 
         response.setContentType("text/html");
         PrintWriter writer = response.getWriter();
-        
+
         writer.println("<html><head>");
         writer.println("<script type=\"text/javascript\">");
         writer.println("<!--");
@@ -33,7 +33,7 @@ public class StatsServlet extends HttpServlet {
         writer.println("//-->");
         writer.println("</script>");
         writer.println("</head><body>");
-        
+
         writer.append("<h1>Last ").append(Integer.toString(XapiQueryStats.MAX_STATS)).println(" Requests</h1>\n");
         writer.println("<table border='1'>");
         writer.println("<tr>");
@@ -45,7 +45,7 @@ public class StatsServlet extends HttpServlet {
         writer.println("<th>Runtime</th>");
         // writer.println("<th>Action</th>");
         writer.println("</tr>\n");
-        
+
         int exNum = 0;
         boolean even = false;
         List<XapiQueryStats> allTrackers = XapiQueryStats.getAllTrackers();
@@ -80,7 +80,7 @@ public class StatsServlet extends HttpServlet {
         writer.println("</table>\n");
         writer.println("</body></html>");
     }
-    
+
     private String prettyTime(long elapsedMillis) {
         StringBuilder b = new StringBuilder();
         long x = elapsedMillis;

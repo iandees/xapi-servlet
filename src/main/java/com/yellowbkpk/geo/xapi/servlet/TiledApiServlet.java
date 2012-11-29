@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -28,11 +27,9 @@ import org.openstreetmap.osmosis.core.lifecycle.ReleasableIterator;
 import org.openstreetmap.osmosis.core.time.DateFormatter;
 import org.openstreetmap.osmosis.core.time.DateParser;
 import org.openstreetmap.osmosis.core.util.PropertiesPersister;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
 import com.yellowbkpk.geo.xapi.db.PostgreSqlDatasetContext;
-import com.yellowbkpk.geo.xapi.db.Selector;
 import com.yellowbkpk.geo.xapi.writer.XapiSink;
 
 public class TiledApiServlet extends HttpServlet {
@@ -72,11 +69,11 @@ public class TiledApiServlet extends HttpServlet {
                 }
                 String reqUrl = urlBuffer.toString();
                 tracker.receivedUrl(reqUrl, request.getRemoteHost());
-                
+
                 reqUrl = URLDecoder.decode(reqUrl, "UTF-8");
 
                 log.info("reqUrl: " + reqUrl);
-                
+
                 Pattern pattern = Pattern.compile("\\/api\\/0\\.6\\/tiled\\/(\\d{0,2})\\/(\\d*)\\/(\\d*)");
                 Matcher matcher = pattern.matcher(reqUrl);
                 if (!matcher.find()) {
@@ -93,17 +90,17 @@ public class TiledApiServlet extends HttpServlet {
                 response.sendError(500, "Could not parse query: " + e.getMessage());
                 return;
             }
-            
+
             if (!filetype.isSinkInstalled()) {
                 response.sendError(500, "I don't know how to serialize that.");
                 return;
             }
-            
+
             if (zoom < 12) {
             	response.sendError(400, "Zoom level is too low.");
             	return;
             }
-            
+
             // Build bounding box from tile
             double left = tile2lon(x, zoom);
             double right = tile2lon(x+1, zoom);
@@ -121,7 +118,7 @@ public class TiledApiServlet extends HttpServlet {
                 datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
 
                 bboxData = datasetReader.iterateBoundingBox(left, right, top, bottom, true);
-                
+
                 tracker.startSerialization();
                 middle = System.currentTimeMillis();
                 log.info("Tile " + zoom + "/" + x + "/" + y + " complete: " + (middle - start) + "ms");
@@ -191,7 +188,7 @@ public class TiledApiServlet extends HttpServlet {
             throw e;
         }
     }
-    
+
     private double tile2lat(int y, int zoom) {
     	double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, zoom);
         return Math.toDegrees(Math.atan(Math.sinh(n)));

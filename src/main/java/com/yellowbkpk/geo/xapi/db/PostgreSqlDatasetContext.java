@@ -2,13 +2,11 @@
 package com.yellowbkpk.geo.xapi.db;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.openstreetmap.osmosis.core.OsmosisConstants;
@@ -49,12 +47,14 @@ import org.postgis.Point;
 import org.postgis.Polygon;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
+import com.yellowbkpk.geo.xapi.admin.XapiQueryStats;
+
 /**
  * Provides read-only access to a PostgreSQL dataset store. Each thread
  * accessing the store must create its own reader. It is important that all
  * iterators obtained from this reader are released before releasing the reader
  * itself.
- * 
+ *
  * @author Brett Henderson
  */
 public class PostgreSqlDatasetContext implements DatasetContext {
@@ -77,7 +77,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
     /**
      * Creates a new instance.
-     * 
+     *
      * @param loginCredentials
      *            Contains all information required to connect to the database.
      * @param preferences
@@ -389,11 +389,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
     }
 
-    private Date fetchLastUpdate() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -418,7 +413,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         if (!initialized) {
             initialize();
         }
-        
+
         String whereStr = buildSelectorWhereClause(tagSelectors);
         List<Object> whereObj = buildSelectorWhereParameters(tagSelectors);
 
@@ -513,32 +508,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return obj.toString();
     }
 
-    private List<Object> buildBboxWhereParameters(List<Selector.Polygon> bboxSelectors) {
-        List<Object> obj = new LinkedList<Object>();
-        for (Selector selector : bboxSelectors) {
-            obj.addAll(selector.getWhereParam());
-        }
-        return obj;
-    }
-
-    private String buildBboxWhereClause(List<Selector.Polygon> bboxSelectors) {
-        StringBuilder obj = new StringBuilder();
-        boolean first = true;
-        for (Selector selector : bboxSelectors) {
-            if (!first) {
-                obj.append(" OR ");
-            }
-            obj.append(selector.getWhereString());
-            first = false;
-        }
-        if (first) {
-            // empty selector, put in a null statement which postgres should
-            // just optimise away
-            obj.append("(1=1)");
-        }
-        return obj.toString();
-    }
-
     public ReleasableIterator<EntityContainer> iterateSelectedWays(List<? extends Selector> tagSelectors) {
         int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
@@ -547,7 +516,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         if (!initialized) {
             initialize();
         }
-        
+
         String whereStr = buildSelectorWhereClause(tagSelectors);
         if (capabilityChecker.isWayLinestringSupported()) {
             whereStr = whereStr.replace("geom", "linestring");
@@ -745,7 +714,6 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     }
 
     public ReleasableIterator<EntityContainer> iterateNodes(List<Long> ids) {
-        int rowCount;
         List<ReleasableIterator<EntityContainer>> resultSets = new ArrayList<ReleasableIterator<EntityContainer>>();
 
         if (!initialized) {
@@ -763,7 +731,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
         LOG.finer("Creating nodes table with single ID.");
         String idsSql = buildListSql(ids);
-        rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
+        jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE id IN " + idsSql, ids.toArray());
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
@@ -779,7 +747,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         return new MultipleSourceIterator<EntityContainer>(resultSets);
 
     }
-    
+
     public String primitivesAsGeoJSON(String primitiveType, List<Long> ids) {
         if (!initialized) {
             initialize();
@@ -787,18 +755,18 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
 		String tableName;
 		String geoColumnName;
-		if ("node".equals(primitiveType)) 
-		{ 
-			tableName = "nodes"; 
+		if ("node".equals(primitiveType))
+		{
+			tableName = "nodes";
 			geoColumnName = "geom";
 		}
-		else if ("way".equals(primitiveType)) 
+		else if ("way".equals(primitiveType))
 		{
 	        if (capabilityChecker.isWayLinestringSupported()) {
 	        	tableName = "ways";
 	        	geoColumnName = "linestring";
 	        }
-	        else 
+	        else
 	        {
 	            throw new IllegalArgumentException("I can only serialize ways as geoJSON if the ways table has a geometry column");
 	        }
@@ -994,11 +962,11 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         } else if (capabilityChecker.isWayBboxSupported()) {
             LOG.finer("Selecting all ways inside bounding box using dynamically built"
                     + " way linestring with way bbox indexing.");
-            
+
             List<Object> args = new ArrayList<Object>();
             args.addAll(whereObj);
             args.addAll(whereObj);
-            
+
             // The inner query selects the way id and node coordinates for all
             // ways constrained by the way bounding box which is indexed. The
             // middle query converts the way node coordinates into linestrings.
