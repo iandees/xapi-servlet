@@ -28,6 +28,7 @@ public class XapiQueryStats {
     private long elementCount;
     private String remoteHost;
     private String threadId;
+	private List<Timepoint> timepoints;
 
     private XapiQueryStats(Thread requestThread) {
         this.startTime = System.currentTimeMillis();
@@ -201,5 +202,22 @@ public class XapiQueryStats {
     public Exception getException() {
         return exception;
     }
+
+    class Timepoint {
+    	public Timepoint(String timepointName, long timeMillis) {
+    		this.name = timepointName;
+    		this.time = timeMillis;
+		}
+		public String name;
+    	public long time;
+    }
+
+	public void recordTimepoint(String timepointName) {
+		this.timepoints.add(new Timepoint(timepointName, System.currentTimeMillis()));
+	}
+
+	public List<Timepoint> getTimepoints() {
+		return this.timepoints;
+	}
 
 }

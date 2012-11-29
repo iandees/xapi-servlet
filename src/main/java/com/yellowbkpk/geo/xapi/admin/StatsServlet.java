@@ -47,6 +47,7 @@ public class StatsServlet extends HttpServlet {
         writer.println("</tr>\n");
 
         int exNum = 0;
+        int timeNum = 0;
         boolean even = false;
         List<XapiQueryStats> allTrackers = XapiQueryStats.getAllTrackers();
         for (XapiQueryStats stat : allTrackers) {
@@ -54,10 +55,10 @@ public class StatsServlet extends HttpServlet {
             writer.append("<td>").append(timeFormat.format(stat.getStartTime())).println("</td>");
             writer.append("<td>").append(stat.getRemoteAddress()).println("</td>");
             if (stat.hasException()) {
-                writer.append("<td><a href=\"#\" onClick=\"toggle('").append(Integer.toString(exNum)).println("');return false;\">");
+                writer.append("<td><a href=\"#\" onClick=\"toggle('ex-").append(Integer.toString(exNum)).println("');return false;\">");
                 writer.println(stat.getState().toString());
                 writer.println("</a>");
-                writer.append("<div id='").append(Integer.toString(exNum)).println("' style='display:none;'><pre>");
+                writer.append("<div id='ex-").append(Integer.toString(exNum)).println("' style='display:none;'><pre>");
                 stat.getException().printStackTrace(writer);
                 writer.println("</pre></div>");
                 writer.println("</td>");
@@ -68,12 +69,36 @@ public class StatsServlet extends HttpServlet {
             writer.append("<td><tt>").append(stat.getRequest()).println("</tt></td>");
             if (stat.isActive()) {
                 writer.println("<td>-</td>");
-                writer.append("<td>").append(prettyTimeOngoing(stat.getStartTime())).println("</td>");
-                // writer.println("<td><a href='kill?id=").append(stat.getThreadId()).append("'>Kill</a>");
+                writer.append("<td><a href=\"#\" onClick=\"toggle('time-").append(Integer.toString(timeNum)).append("');return false;\">").append(prettyTimeOngoing(stat.getStartTime())).println("</a>");
+                writer.append("<div id='time-").append(Integer.toString(exNum)).println("' style='display:none;'><table border='1'>");
+                writer.println("<tr><th>Timepoint</th><th>Millis</th></tr>");
+                XapiQueryStats.Timepoint prev = null;
+                for (XapiQueryStats.Timepoint tp : stat.getTimepoints()) {
+                	if (prev != null) {
+                		long elapsed = tp.time - prev.time;
+                		writer.append("<tr><td>").append(tp.name).append("</td><td>").append(prettyTime(elapsed)).println("</td></tr>");
+                	}
+                	prev = tp;
+				}
+                writer.println("</table></div>");
+                writer.println("</td>");
             } else {
                 writer.append("<td>").append(Long.toString(stat.getElementCount())).println("</td>");
-                writer.append("<td>").append(prettyTime(stat.getOverallElapsedTime())).println("</td>");
+                writer.append("<td><a href=\"#\" onClick=\"toggle('time-").append(Integer.toString(timeNum)).append("');return false;\">").append(prettyTime(stat.getOverallElapsedTime())).println("</a>");
+                writer.append("<div id='time-").append(Integer.toString(exNum)).println("' style='display:none;'><table border='1'>");
+                writer.println("<tr><th>Timepoint</th><th>Millis</th></tr>");
+                XapiQueryStats.Timepoint prev = null;
+                for (XapiQueryStats.Timepoint tp : stat.getTimepoints()) {
+                	if (prev != null) {
+                		long elapsed = tp.time - prev.time;
+                		writer.append("<tr><td>").append(tp.name).append("</td><td>").append(prettyTime(elapsed)).println("</td></tr>");
+                	}
+                	prev = tp;
+				}
+                writer.println("</table></div>");
+                writer.println("</td>");
             }
+            timeNum++;
             writer.println("</tr>\n");
             even = !even;
         }

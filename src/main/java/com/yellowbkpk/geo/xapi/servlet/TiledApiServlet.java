@@ -116,6 +116,7 @@ public class TiledApiServlet extends HttpServlet {
                 tracker.startDbQuery();
                 long start = System.currentTimeMillis();
                 datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+                datasetReader.includeTimer(tracker);
 
                 bboxData = datasetReader.iterateBoundingBox(left, right, top, bottom, true);
 

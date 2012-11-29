@@ -75,6 +75,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
     private PostgreSqlEntityManager<Way> wayManager;
     private PostgreSqlEntityManager<Relation> relationManager;
 
+	private XapiQueryStats tracker;
+
     /**
      * Creates a new instance.
      *
@@ -229,6 +231,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -251,12 +254,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Selecting all nodes inside bounding box.");
         rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE ST_Intersects(geom, ?)", new PGgeometry(bboxPolygon));
+        tracker.recordTimepoint("select nodes");
 
         LOG.finer("Adding a primary key to the temporary nodes table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
         jdbcTemplate.update("ANALYZE bbox_nodes");
+        tracker.recordTimepoint("uniquify nodes");
 
         // Select all ways inside the bounding box into the way temp table.
         if (capabilityChecker.isWayLinestringSupported()) {
@@ -304,12 +309,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                     + ") wids ON w.id = wids.way_id");
         }
         LOG.finer(rowCount + " rows affected.");
+        tracker.recordTimepoint("select ways");
 
         LOG.finer("Adding a primary key to the temporary ways table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_ways ADD CONSTRAINT pk_bbox_ways PRIMARY KEY (id)");
 
         LOG.finer("Updating query analyzer statistics on the temporary ways table.");
         jdbcTemplate.update("ANALYZE bbox_ways");
+        tracker.recordTimepoint("uniquify ways");
 
         // Select all relations containing the nodes or ways into the relation
         // table.
@@ -326,12 +333,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 + "     ) rids GROUP BY relation_id"
                 + ") rids ON r.id = rids.relation_id");
         LOG.finer(rowCount + " rows affected.");
+        tracker.recordTimepoint("backfill relations");
 
         LOG.finer("Adding a primary key to the temporary relations table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_relations ADD CONSTRAINT pk_bbox_relations PRIMARY KEY (id)");
 
         LOG.finer("Updating query analyzer statistics on the temporary relations table.");
         jdbcTemplate.update("ANALYZE bbox_relations");
+        tracker.recordTimepoint("uniquify relations");
 
         // Include all relations containing the current relations into the
         // relation table and repeat until no more inclusions occur.
@@ -368,6 +377,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             rowCount = jdbcTemplate.update("INSERT INTO bbox_nodes "
                     + "SELECT n.* FROM nodes n INNER JOIN bbox_missing_way_nodes bwn ON n.id = bwn.id;");
             LOG.finer(rowCount + " rows affected.");
+            tracker.recordTimepoint("backfill ways");
         }
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
@@ -384,6 +394,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
+
+		tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -422,6 +434,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -430,18 +443,22 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Selecting all nodes inside bounding box.");
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE " + whereStr, whereObj.toArray());
+        tracker.recordTimepoint("select nodes");
 
         LOG.finer("Adding a primary key to the temporary nodes table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_nodes ADD CONSTRAINT pk_bbox_nodes PRIMARY KEY (id)");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
         jdbcTemplate.update("ANALYZE bbox_nodes");
+        tracker.recordTimepoint("uniquify nodes");
 
         // Create iterators for the selected records for each of the entity
         // types.
         LOG.finer("Iterating over results.");
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -541,6 +558,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -548,6 +566,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Creating empty nodes table.");
         rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE FALSE");
+        tracker.recordTimepoint("select nodes");
 
         // Select all ways inside the bounding box into the way temp table.
         LOG.finer("Selecting all ways inside bounding box using way linestring geometry.");
@@ -557,6 +576,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
             + whereStr;
 
         rowCount = jdbcTemplate.update(sql, whereObj.toArray());
+        tracker.recordTimepoint("select ways");
 
         LOG.finer(rowCount + " rows affected.");
 
@@ -565,20 +585,29 @@ public class PostgreSqlDatasetContext implements DatasetContext {
 
         LOG.finer("Updating query analyzer statistics on the temporary ways table.");
         jdbcTemplate.update("ANALYZE bbox_ways");
+        tracker.recordTimepoint("uniquify ways");
 
         LOG.finer("Selecting all nodes for selected ways.");
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_way_nodes (id bigint) ON COMMIT DROP");
         jdbcTemplate.queryForList("SELECT unnest_bbox_way_nodes()");
+        tracker.recordTimepoint("unnest way nodes");
+
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_missing_way_nodes ON COMMIT DROP AS "
                 + "SELECT buwn.id FROM (SELECT DISTINCT bwn.id FROM bbox_way_nodes bwn) buwn "
                 + "WHERE NOT EXISTS ("
                 + "    SELECT * FROM bbox_nodes WHERE id = buwn.id"
                 + ");");
+        tracker.recordTimepoint("find unnested nodes not previously selected");
+
         jdbcTemplate.update("ALTER TABLE ONLY bbox_missing_way_nodes"
                 + " ADD CONSTRAINT pk_bbox_missing_way_nodes PRIMARY KEY (id)");
         jdbcTemplate.update("ANALYZE bbox_missing_way_nodes");
+        tracker.recordTimepoint("uniquify unnested way nodes");
+
         rowCount = jdbcTemplate.update("INSERT INTO bbox_nodes "
                 + "SELECT n.* FROM nodes n INNER JOIN bbox_missing_way_nodes bwn ON n.id = bwn.id;");
+        tracker.recordTimepoint("add unnested way nodes to nodes");
+
         LOG.finer(rowCount + " rows affected.");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
@@ -593,6 +622,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -628,6 +659,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -635,12 +667,14 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Selecting all relations matching tags.");
         rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
                 + " SELECT * FROM relations WHERE " + tagsWhereStr, objArgs.toArray());
+        tracker.recordTimepoint("select relations");
 
         LOG.finer("Adding a primary key to the temporary relations table.");
         jdbcTemplate.update("ALTER TABLE ONLY bbox_relations ADD CONSTRAINT pk_bbox_relations PRIMARY KEY (id)");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
         jdbcTemplate.update("ANALYZE bbox_relations");
+        tracker.recordTimepoint("uniquify relations");
 
         // Create iterators for the selected records for each of the entity
         // types.
@@ -649,6 +683,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 new ReleasableAdaptorForIterator<Bound>(bounds.iterator()))));
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -678,6 +714,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -686,16 +723,21 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         List<Object> whereObj = buildSelectorWhereParameters(tagSelectors);
 
         populateNodeTables(whereStr, whereObj);
+        tracker.recordTimepoint("select nodes");
 
         populateWayTables(whereStr, whereObj);
+        tracker.recordTimepoint("select ways");
 
         String tagsWhereStr = buildTagSelectorWhereClause(tagSelectors);
         List<Object> tagsWhereObj = buildTagSelectorWhereParameters(tagSelectors);
         populateRelationTables(tagsWhereStr, tagsWhereObj);
+        tracker.recordTimepoint("select relations");
 
         backfillRelationsTables();
+        tracker.recordTimepoint("backill relations");
 
         backfillNodesTables();
+        tracker.recordTimepoint("backill nodes");
 
         // Create iterators for the selected records for each of the entity
         // types.
@@ -708,6 +750,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -725,6 +769,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -733,6 +778,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         String idsSql = buildListSql(ids);
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE id IN " + idsSql, ids.toArray());
+        tracker.recordTimepoint("select nodes");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
         jdbcTemplate.update("ANALYZE bbox_nodes");
@@ -742,6 +788,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Iterating over results.");
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -832,6 +880,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -839,6 +888,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Creating empty nodes table.");
         rowCount = jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_nodes ON COMMIT DROP AS"
                 + " SELECT * FROM nodes WHERE FALSE");
+        tracker.recordTimepoint("select nodes");
 
         String idsSql = buildListSql(ids);
         rowCount = jdbcTemplate.update(
@@ -846,6 +896,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 ids.toArray());
 
         LOG.finer(rowCount + " rows affected.");
+        tracker.recordTimepoint("select ways");
 
         LOG.finer("Updating query analyzer statistics on the temporary ways table.");
         jdbcTemplate.update("ANALYZE bbox_ways");
@@ -864,6 +915,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         rowCount = jdbcTemplate.update("INSERT INTO bbox_nodes "
                 + "SELECT n.* FROM nodes n INNER JOIN bbox_missing_way_nodes bwn ON n.id = bwn.id;");
         LOG.finer(rowCount + " rows affected.");
+        tracker.recordTimepoint("backfill nodes");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
         jdbcTemplate.update("ANALYZE bbox_nodes");
@@ -875,6 +927,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
                 .iterate("bbox_"))));
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -892,6 +946,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         // practice according to documentation but fixing this would require
         // modifying the table statistics gathering configuration to produce
         // better plans.
+        tracker.recordTimepoint("query start");
         jdbcTemplate.update("SET enable_seqscan = false");
         jdbcTemplate.update("SET enable_mergejoin = false");
         jdbcTemplate.update("SET enable_hashjoin = false");
@@ -900,6 +955,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         String idsSql = buildListSql(ids);
         jdbcTemplate.update("CREATE TEMPORARY TABLE bbox_relations ON COMMIT DROP AS"
                 + " SELECT * FROM relations WHERE id IN " + idsSql, ids.toArray());
+        tracker.recordTimepoint("select relations");
 
         LOG.finer("Updating query analyzer statistics on the temporary nodes table.");
         jdbcTemplate.update("ANALYZE bbox_relations");
@@ -909,6 +965,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Iterating over results.");
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
+
+        tracker.recordTimepoint("query done");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -1080,4 +1138,8 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         LOG.finer("Updating query analyzer statistics on the temporary relations table.");
         jdbcTemplate.update("ANALYZE bbox_relations");
     }
+
+	public void includeTimer(XapiQueryStats tracker) {
+		this.tracker = tracker;
+	}
 }

@@ -139,6 +139,8 @@ public class XapiServlet extends HttpServlet {
                 tracker.startDbQuery();
                 long start = System.currentTimeMillis();
                 datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+                datasetReader.includeTimer(tracker);
+
                 bboxData = makeRequestIterator(datasetReader, info);
                 if (bboxData == null) {
                     tracker.error();

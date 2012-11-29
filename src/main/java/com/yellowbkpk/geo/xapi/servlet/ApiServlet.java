@@ -152,6 +152,7 @@ public class ApiServlet extends HttpServlet {
                 tracker.startDbQuery();
                 long start = System.currentTimeMillis();
                 datasetReader = new PostgreSqlDatasetContext(loginCredentials, preferences);
+                datasetReader.includeTimer(tracker);
 
                 if ("node".equals(primitiveType)) {
                     bboxData = datasetReader.iterateNodes(ids);
