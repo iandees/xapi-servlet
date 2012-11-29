@@ -395,7 +395,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
 
-		tracker.recordTimepoint("query done");
+		tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -458,7 +458,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -623,7 +623,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -684,7 +684,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -751,7 +751,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -789,7 +789,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, NodeContainer>(new NodeContainerIterator(nodeDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -928,7 +928,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, WayContainer>(new WayContainerIterator(wayDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
@@ -966,7 +966,7 @@ public class PostgreSqlDatasetContext implements DatasetContext {
         resultSets.add(new UpcastIterator<EntityContainer, RelationContainer>(new RelationContainerIterator(relationDao
                 .iterate("bbox_"))));
 
-        tracker.recordTimepoint("query done");
+        tracker.recordTimepoint("iterate results");
 
         // Merge all readers into a single result iterator and return.
         return new MultipleSourceIterator<EntityContainer>(resultSets);
