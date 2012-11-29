@@ -86,6 +86,17 @@
     <url-pattern>/admin/block</url-pattern>
   </servlet-mapping>
   
+  <filter>
+    <filter-name>RemoteIpFilter</filter-name>
+    <filter-class>org.apache.catalina.filters.RemoteIpFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>RemoteIpFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+    <dispatcher>REQUEST</dispatcher>
+  </filter-mapping>
+
   <!-- 
   <servlet>
   	<servlet-name>Killer</servlet-name>
