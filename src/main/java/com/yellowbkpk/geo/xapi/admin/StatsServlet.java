@@ -70,7 +70,7 @@ public class StatsServlet extends HttpServlet {
             if (stat.isActive()) {
                 writer.println("<td>-</td>");
                 writer.append("<td><a href=\"#\" onClick=\"toggle('time-").append(Integer.toString(timeNum)).append("');return false;\">").append(prettyTimeOngoing(stat.getStartTime())).println("</a>");
-                writer.append("<div id='time-").append(Integer.toString(exNum)).println("' style='display:none;'><table border='1'>");
+                writer.append("<div id='time-").append(Integer.toString(timeNum)).println("' style='display:none;'><table border='1'>");
                 writer.println("<tr><th>Timepoint</th><th>Millis</th></tr>");
                 XapiQueryStats.Timepoint prev = null;
                 for (XapiQueryStats.Timepoint tp : stat.getTimepoints()) {
@@ -85,7 +85,7 @@ public class StatsServlet extends HttpServlet {
             } else {
                 writer.append("<td>").append(Long.toString(stat.getElementCount())).println("</td>");
                 writer.append("<td><a href=\"#\" onClick=\"toggle('time-").append(Integer.toString(timeNum)).append("');return false;\">").append(prettyTime(stat.getOverallElapsedTime())).println("</a>");
-                writer.append("<div id='time-").append(Integer.toString(exNum)).println("' style='display:none;'><table border='1'>");
+                writer.append("<div id='time-").append(Integer.toString(timeNum)).println("' style='display:none;'><table border='1'>");
                 writer.println("<tr><th>Timepoint</th><th>Millis</th></tr>");
                 XapiQueryStats.Timepoint prev = null;
                 for (XapiQueryStats.Timepoint tp : stat.getTimepoints()) {
